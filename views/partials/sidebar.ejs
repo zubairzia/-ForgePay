@@ -1,0 +1,44 @@
+<!-- Hamburger button -->
+<button id="menu-btn" class="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded shadow">
+  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+  </svg>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-40">
+  <div class="p-6 border-b">
+    <a href="/" class="text-2xl font-bold text-indigo-600">Forge Pay</a>
+  </div>
+
+  <nav class="p-4">
+    <ul class="space-y-2">
+
+      <li class="text-xs font-bold text-gray-500 uppercase mb-2">CRM</li>
+      <li><a href="/customers" class="block py-2 px-3 rounded hover:bg-indigo-50">Customers</a></li>
+      <li><a href="/vendors" class="block py-2 px-3 rounded hover:bg-indigo-50">Vendors</a></li>
+
+      <li class="text-xs font-bold text-gray-500 uppercase mt-6 mb-2">Sales</li>
+      <li><a href="/items" class="block py-2 px-3 rounded hover:bg-indigo-50">Items</a></li>
+      <li><a href="/quotes" class="block py-2 px-3 rounded hover:bg-indigo-50">Quotes</a></li>
+      <li><a href="/salesorders" class="block py-2 px-3 rounded hover:bg-indigo-50">Sales Orders</a></li>
+      <li><a href="/invoices" class="block py-2 px-3 rounded hover:bg-indigo-50">Invoices</a></li>
+
+      <li class="text-xs font-bold text-gray-500 uppercase mt-6 mb-2">Purchase</li>
+      <li><a href="/expenses" class="block py-2 px-3 rounded hover:bg-indigo-50">Expenses</a></li>
+      <li><a href="/purchaseorders" class="block py-2 px-3 rounded hover:bg-indigo-50">Purchase Orders</a></li>
+      <li><a href="/bills" class="block py-2 px-3 rounded hover:bg-indigo-50">Bills</a></li>
+
+      <li class="text-xs font-bold text-gray-500 uppercase mt-6 mb-2">Payments</li>
+      <li><a href="/payments" class="block py-2 px-3 rounded hover:bg-indigo-50">Customer Payments</a></li>
+      <li><a href="/paymentsmade" class="block py-2 px-3 rounded hover:bg-indigo-50">Payments Made</a></li>
+      <li><a href="/creditnotes" class="block py-2 px-3 rounded hover:bg-indigo-50">Credit Notes</a></li>
+      <li><a href="/vendorcredits" class="block py-2 px-3 rounded hover:bg-indigo-50">Vendor Credits</a></li>
+
+      <li class="text-xs font-bold text-gray-500 uppercase mt-6 mb-2">Settings</li>
+      <li><a href="/settings" class="block py-2 px-3 rounded hover:bg-indigo-50">Settings</a></li>
+      <li><a href="/reports" class="block py-2 px-3 rounded hover:bg-indigo-50">Reports</a></li>
+
+    </ul>
+  </nav>
+</div>
