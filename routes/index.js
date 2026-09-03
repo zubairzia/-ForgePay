@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const tenantMiddleware = require('../middleware/tenant.middleware');
+const { attachPlan } = require('../middleware/plan.middleware');
 
 // UI Routes (EJS pages)
 // TEMPORARY: hardcoded tenant until real login/session exists, mirroring
@@ -23,7 +24,7 @@ const webRoutes = require('./web');
 const apiV1Routes = require('./api/v1');
 
 // Mount routes
-router.use('/', webTenantMiddleware, webRoutes);
+router.use('/', webTenantMiddleware, attachPlan(), webRoutes);
 router.use('/api/v1', tenantMiddleware, apiV1Routes);
 
 module.exports = router;

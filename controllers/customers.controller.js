@@ -48,7 +48,7 @@ const viewCustomer = async (req, res, next) => {
   try {
     const customer = await localService.getCustomerById(req.tenantId, req.params.customer_code);
     if (!customer) {
-      return res.status(404).send('Customer not found');
+      return res.status(404).render('customers/not-found', { customerCode: req.params.customer_code });
     }
     res.render('customers/detail', { customer });
   } catch (error) {
@@ -61,7 +61,7 @@ const editCustomer = async (req, res, next) => {
   try {
     const customer = await localService.getCustomerById(req.tenantId, req.params.customer_code);
     if (!customer) {
-      return res.status(404).send('Customer not found');
+      return res.status(404).render('customers/not-found', { customerCode: req.params.customer_code });
     }
     res.render('customers/edit', { customer });
   } catch (error) {
