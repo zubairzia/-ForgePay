@@ -21,9 +21,19 @@ const webRoutes = require('./web');
 // for why this exists and what still needs to change once real auth
 // is added.
 const apiV1Routes = require('./api/v1');
+const companiesRoutes = require('./api/v1/companies.routes');
 
 // Mount routes
 router.use('/', webTenantMiddleware, webRoutes);
+
+// Companies (tenants) are the one resource that must be creatable and
+// readable BEFORE any tenant context exists — a company IS the tenant, so
+// there's no company_id to resolve yet when one is being created (e.g. a
+// signup flow calling POST /api/v1/companies). This is mounted here, ahead
+// of the tenantMiddleware-gated block below, so Express matches
+// /api/v1/companies/* first and tenantMiddleware never runs for it.
+router.use('/api/v1/companies', companiesRoutes);
+
 router.use('/api/v1', tenantMiddleware, apiV1Routes);
 
 module.exports = router;
