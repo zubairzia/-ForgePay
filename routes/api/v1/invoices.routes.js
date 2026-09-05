@@ -1,8 +1,11 @@
-// example: invoices.routes.js
 const express = require('express');
 const router = express.Router();
+const invoicesController = require('../../../controllers/invoices.controller');
 
-// Define routes here
-// router.get('/', (req, res) => res.send('Invoices endpoint'));
+router.get('/', invoicesController.getInvoices);
+router.post('/', invoicesController.createInvoice);
+router.get('/:id', invoicesController.getInvoiceById);
+router.put('/:id', invoicesController.updateInvoice);
+router.patch('/:id/status', invoicesController.updateInvoiceStatus);
 
-module.exports = router; // ✅ must export the router
+module.exports = router;

@@ -1,8 +1,9 @@
-// example: paymentsmade.routes.js
 const express = require('express');
 const router = express.Router();
+const paymentsMadeController = require('../../../controllers/paymentsmade.controller');
 
-// Define routes here
-// router.get('/', (req, res) => res.send('PaymentsMade endpoint'));
+router.get('/', paymentsMadeController.getPaymentsMade);
+router.post('/', paymentsMadeController.createPaymentMade);
+router.get('/:id', paymentsMadeController.getPaymentMadeById);
 
-module.exports = router; // ✅ must export the router
+module.exports = router;
