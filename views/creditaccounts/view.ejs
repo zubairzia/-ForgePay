@@ -1,0 +1,104 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<main class="lg:ml-64 p-8 bg-gray-100 min-h-screen">
+  <div class="max-w-6xl mx-auto">
+
+    <div id="loadError" class="hidden mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm"></div>
+
+    <!-- HEADER -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 id="accountNumber" class="text-2xl font-bold text-gray-800">-</h1>
+            <span id="statusBadge"></span>
+          </div>
+          <p id="customerName" class="text-sm text-gray-500 mt-1">-</p>
+        </div>
+        <div class="flex gap-2">
+          <a id="recordRepaymentBtn" href="#" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm">
+            Record Repayment
+          </a>
+          <div class="relative group">
+            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Waive Penalty</button>
+            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
+          </div>
+          <div class="relative group">
+            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Reschedule</button>
+            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
+          </div>
+          <div class="relative group">
+            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Send Reminder</button>
+            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
+          </div>
+          <div class="relative group">
+            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Download Statement</button>
+            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-4 mt-6">
+        <div class="bg-gray-50 rounded p-4">
+          <div class="text-xs text-gray-500 uppercase">Outstanding Balance</div>
+          <div id="outstandingBalance" class="text-xl font-bold text-gray-800 mt-1">-</div>
+        </div>
+        <div class="bg-gray-50 rounded p-4">
+          <div class="text-xs text-gray-500 uppercase">Next Installment Due</div>
+          <div id="nextDue" class="text-xl font-bold text-gray-800 mt-1">-</div>
+        </div>
+        <div class="bg-gray-50 rounded p-4">
+          <div class="text-xs text-gray-500 uppercase">Days Overdue</div>
+          <div id="daysOverdue" class="text-xl font-bold text-gray-800 mt-1">-</div>
+        </div>
+        <div class="bg-gray-50 rounded p-4">
+          <div class="text-xs text-gray-500 uppercase">Financed / Total Payable</div>
+          <div id="financedTotal" class="text-xl font-bold text-gray-800 mt-1">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPAYMENT SCHEDULE -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold mb-4">Repayment Schedule</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Principal Due</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Markup Due</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Penalty Due</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Paid</th>
+              <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Remaining</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleBody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+      <!-- PAYMENTS -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Payments</h2>
+        <div id="paymentsList" class="divide-y divide-gray-100 text-sm"></div>
+      </div>
+
+      <!-- ACTIVITY FEED -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Activity</h2>
+        <div id="activityFeed" class="divide-y divide-gray-100 text-sm"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>window.__creditAccountId = <%- JSON.stringify(id) %>;</script>
+<script src="/js/creditaccounts-view.js"></script>
+
+<%- include('../partials/footer') %>

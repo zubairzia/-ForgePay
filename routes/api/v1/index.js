@@ -14,4 +14,6 @@ router.use('/paymentsmade', require('./paymentsmade.routes'));
 
 router.use('/credit-accounts', require('./creditaccounts.routes'));
 
+router.use('/dashboard', require('./dashboard.routes'));
+
 module.exports = router;

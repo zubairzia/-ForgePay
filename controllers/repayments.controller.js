@@ -26,7 +26,22 @@ const createRepayment = async (req, res, next) => {
   }
 };
 
+// PREVIEW how a repayment amount would be allocated across open
+// installments — same computeAllocation recordRepayment uses, read-only.
+const previewRepayment = async (req, res, next) => {
+  try {
+    const preview = await localService.previewRepaymentAllocation(req.tenantId, req.params.id, req.body.amount);
+    if (!preview) {
+      return res.status(404).json({ message: 'Credit account not found' });
+    }
+    res.json(preview);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getRepayments,
   createRepayment,
+  previewRepayment,
 };

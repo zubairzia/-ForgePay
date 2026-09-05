@@ -20,6 +20,124 @@ const WATERFALL_BUCKETS = {
   principal_markup_penalty: ['principal', 'markup', 'penalty'],
 };
 
+// Pure allocation math, shared by recordRepayment (against locked, real
+// rows, inside a transaction) and previewRepaymentAllocation (against
+// freshly-read, unlocked rows, no transaction) — this is the ONE place
+// that decides which installment/bucket a payment amount lands in, so a
+// preview shown to a cashier can never drift from what actually posts.
+const computeAllocation = (installments, amount, waterfallOrder) => {
+  const buckets = WATERFALL_BUCKETS[waterfallOrder] || WATERFALL_BUCKETS.penalty_markup_principal;
+  let remaining = round2(amount);
+  const touchedInstallments = [];
+
+  for (const installment of installments) {
+    if (remaining <= 0) break;
+
+    const paidBefore = {
+      principal: Number(installment.principal_paid),
+      markup: Number(installment.markup_paid),
+      penalty: Number(installment.penalty_paid),
+    };
+    const due = {
+      principal: Number(installment.principal_due),
+      markup: Number(installment.markup_due),
+      penalty: Number(installment.penalty_due),
+    };
+    const applied = { principal: 0, markup: 0, penalty: 0 };
+
+    for (const bucket of buckets) {
+      if (remaining <= 0) break;
+      const bucketRemaining = round2(due[bucket] - paidBefore[bucket]);
+      if (bucketRemaining <= 0) continue;
+
+      const applyAmount = round2(Math.min(remaining, bucketRemaining));
+      applied[bucket] = applyAmount;
+      remaining = round2(remaining - applyAmount);
+    }
+
+    const totalAppliedToInstallment = round2(applied.principal + applied.markup + applied.penalty);
+    if (totalAppliedToInstallment <= 0) continue;
+
+    const newPaid = {
+      principal: round2(paidBefore.principal + applied.principal),
+      markup: round2(paidBefore.markup + applied.markup),
+      penalty: round2(paidBefore.penalty + applied.penalty),
+    };
+    const totalPaid = round2(newPaid.principal + newPaid.markup + newPaid.penalty);
+    const totalDue = round2(due.principal + due.markup + due.penalty);
+    const newDueStatus = totalPaid >= totalDue ? 'paid' : 'partial';
+
+    touchedInstallments.push({
+      repaymentScheduleId: installment.id,
+      installmentNumber: installment.installment_number,
+      dueDate: installment.due_date,
+      appliedPrincipal: applied.principal,
+      appliedMarkup: applied.markup,
+      appliedPenalty: applied.penalty,
+      totalApplied: totalAppliedToInstallment,
+      newPrincipalPaid: newPaid.principal,
+      newMarkupPaid: newPaid.markup,
+      newPenaltyPaid: newPaid.penalty,
+      dueStatusAfter: newDueStatus,
+    });
+  }
+
+  return { touchedInstallments, remainingUnapplied: remaining };
+};
+
+// Read-only preview: fetches the same open installments recordRepayment
+// would lock, runs them through the exact same computeAllocation, and
+// returns the result without writing anything. No transaction needed —
+// nothing is mutated.
+const previewRepaymentAllocation = async (tenantId, creditAccountId, amount) => {
+  const amountNum = Number(amount);
+  if (!Number.isFinite(amountNum) || amountNum <= 0) {
+    const err = new Error('amount must be a positive number');
+    err.status = 400;
+    throw err;
+  }
+
+  const accountResult = await db.query(
+    'SELECT * FROM credit_accounts WHERE company_id = $1 AND id = $2',
+    [tenantId, creditAccountId]
+  );
+  const account = accountResult.rows[0];
+  if (!account) {
+    return undefined;
+  }
+  if (!PAYABLE_ACCOUNT_STATUSES.includes(account.status)) {
+    const err = new Error(`Credit account is '${account.status}' and cannot accept a repayment`);
+    err.status = 409;
+    throw err;
+  }
+
+  const companyResult = await db.query('SELECT payment_waterfall_order FROM companies WHERE id = $1', [tenantId]);
+  const waterfallOrder = companyResult.rows[0]?.payment_waterfall_order || 'penalty_markup_principal';
+
+  const scheduleResult = await db.query(
+    `SELECT * FROM repayment_schedules
+     WHERE company_id = $1 AND credit_account_id = $2 AND due_status = ANY($3)
+     ORDER BY due_date ASC, installment_number ASC`,
+    [tenantId, creditAccountId, OPEN_DUE_STATUSES]
+  );
+  const installments = scheduleResult.rows;
+
+  const totalOutstanding = round2(installments.reduce((sum, i) =>
+    sum + (Number(i.principal_due) - Number(i.principal_paid))
+        + (Number(i.markup_due) - Number(i.markup_paid))
+        + (Number(i.penalty_due) - Number(i.penalty_paid)), 0));
+
+  if (round2(amountNum) > totalOutstanding) {
+    const err = new Error(`amount (${amountNum}) exceeds the total outstanding balance (${totalOutstanding})`);
+    err.status = 400;
+    throw err;
+  }
+
+  const { touchedInstallments, remainingUnapplied } = computeAllocation(installments, amountNum, waterfallOrder);
+
+  return { waterfallOrder, installments: touchedInstallments, remainingUnapplied, totalOutstanding };
+};
+
 const getRepaymentsForAccount = async (tenantId, creditAccountId) => {
   const account = await db.query(
     'SELECT id FROM credit_accounts WHERE company_id = $1 AND id = $2',
@@ -62,7 +180,6 @@ const recordRepayment = async (tenantId, creditAccountId, data) => {
       [tenantId]
     );
     const waterfallOrder = companyResult.rows[0]?.payment_waterfall_order || 'penalty_markup_principal';
-    const buckets = WATERFALL_BUCKETS[waterfallOrder] || WATERFALL_BUCKETS.penalty_markup_principal;
 
     const accountResult = await client.query(
       'SELECT * FROM credit_accounts WHERE company_id = $1 AND id = $2 FOR UPDATE',
@@ -115,73 +232,31 @@ const recordRepayment = async (tenantId, creditAccountId, data) => {
     );
     const payment = paymentResult.rows[0];
 
-    let remaining = round2(amount);
-    const touchedInstallments = [];
+    // Same allocation math a preview would show — see computeAllocation.
+    const { touchedInstallments } = computeAllocation(installments, amount, waterfallOrder);
 
-    for (const installment of installments) {
-      if (remaining <= 0) break;
-
-      const paidBefore = {
-        principal: Number(installment.principal_paid),
-        markup: Number(installment.markup_paid),
-        penalty: Number(installment.penalty_paid),
-      };
-      const due = {
-        principal: Number(installment.principal_due),
-        markup: Number(installment.markup_due),
-        penalty: Number(installment.penalty_due),
-      };
-      const applied = { principal: 0, markup: 0, penalty: 0 };
-
-      for (const bucket of buckets) {
-        if (remaining <= 0) break;
-        const bucketRemaining = round2(due[bucket] - paidBefore[bucket]);
-        if (bucketRemaining <= 0) continue;
-
-        const applyAmount = round2(Math.min(remaining, bucketRemaining));
-        applied[bucket] = applyAmount;
-        remaining = round2(remaining - applyAmount);
-      }
-
-      const totalAppliedToInstallment = round2(applied.principal + applied.markup + applied.penalty);
-      if (totalAppliedToInstallment <= 0) continue;
-
-      const newPaid = {
-        principal: round2(paidBefore.principal + applied.principal),
-        markup: round2(paidBefore.markup + applied.markup),
-        penalty: round2(paidBefore.penalty + applied.penalty),
-      };
-      const totalPaid = round2(newPaid.principal + newPaid.markup + newPaid.penalty);
-      const totalDue = round2(due.principal + due.markup + due.penalty);
-      const newDueStatus = totalPaid >= totalDue ? 'paid' : 'partial';
-
+    for (const touched of touchedInstallments) {
+      // paid_at is only ever null here when not newly 'paid' — the query
+      // that fetched `installments` excludes anything already 'paid'/
+      // 'waived' (OPEN_DUE_STATUSES), so a touched installment never
+      // already had a paid_at to preserve.
       await client.query(
         `UPDATE repayment_schedules SET
           principal_paid = $1, markup_paid = $2, penalty_paid = $3,
           due_status = $4, paid_at = $5, version = version + 1, updated_at = now()
         WHERE company_id = $6 AND id = $7`,
         [
-          newPaid.principal, newPaid.markup, newPaid.penalty,
-          newDueStatus, newDueStatus === 'paid' ? new Date() : installment.paid_at,
-          tenantId, installment.id,
+          touched.newPrincipalPaid, touched.newMarkupPaid, touched.newPenaltyPaid,
+          touched.dueStatusAfter, touched.dueStatusAfter === 'paid' ? new Date() : null,
+          tenantId, touched.repaymentScheduleId,
         ]
       );
 
       await client.query(
         `INSERT INTO payment_allocations (company_id, payment_id, repayment_schedule_id, allocated_amount)
          VALUES ($1,$2,$3,$4)`,
-        [tenantId, payment.id, installment.id, totalAppliedToInstallment]
+        [tenantId, payment.id, touched.repaymentScheduleId, touched.totalApplied]
       );
-
-      touchedInstallments.push({
-        repaymentScheduleId: installment.id,
-        installmentNumber: installment.installment_number,
-        appliedPrincipal: applied.principal,
-        appliedMarkup: applied.markup,
-        appliedPenalty: applied.penalty,
-        totalApplied: totalAppliedToInstallment,
-        dueStatusAfter: newDueStatus,
-      });
     }
 
     // Recompute outstanding totals from the full schedule rather than
@@ -247,5 +322,6 @@ const recordRepayment = async (tenantId, creditAccountId, data) => {
 
 module.exports = {
   recordRepayment,
+  previewRepaymentAllocation,
   getRepaymentsForAccount,
 };

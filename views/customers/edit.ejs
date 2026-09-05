@@ -16,42 +16,79 @@
 
           <div class="flex flex-col">
             <label for="firstName" class="mb-1 font-medium text-gray-700">First Name</label>
-            <input type="text" id="firstName" name="firstName" value="<%= customer.first_name %>" class="border p-2 rounded w-full" required>
+            <input type="text" id="firstName" name="firstName" value="<%= customer.first_name || '' %>" class="border p-2 rounded w-full" required>
           </div>
 
           <div class="flex flex-col">
             <label for="lastName" class="mb-1 font-medium text-gray-700">Last Name</label>
-            <input type="text" id="lastName" name="lastName" value="<%= customer.last_name %>" class="border p-2 rounded w-full" required>
+            <input type="text" id="lastName" name="lastName" value="<%= customer.last_name || '' %>" class="border p-2 rounded w-full" required>
           </div>
 
           <div class="flex flex-col col-span-2">
             <label for="companyName" class="mb-1 font-medium text-gray-700">Company Name</label>
-            <input type="text" id="companyName" name="companyName" value="<%= customer.company_name %>" class="border p-2 rounded w-full">
+            <input type="text" id="companyName" name="companyName" value="<%= customer.company_name || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col col-span-2">
             <label for="displayName" class="mb-1 font-medium text-gray-700">Display Name</label>
-            <input type="text" id="displayName" name="displayName" value="<%= customer.display_name %>" class="border p-2 rounded w-full">
+            <input type="text" id="displayName" name="displayName" value="<%= customer.display_name || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="email" class="mb-1 font-medium text-gray-700">Email</label>
-            <input type="email" id="email" name="email" value="<%= customer.email %>" class="border p-2 rounded w-full" required>
+            <input type="email" id="email" name="email" value="<%= customer.email || '' %>" class="border p-2 rounded w-full" required>
           </div>
 
           <div class="flex flex-col">
             <label for="phone" class="mb-1 font-medium text-gray-700">Phone</label>
-            <input type="text" id="phone" name="phone" value="<%= customer.phone %>" class="border p-2 rounded w-full">
+            <input type="text" id="phone" name="phone" value="<%= customer.phone || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="mobile" class="mb-1 font-medium text-gray-700">Mobile</label>
-            <input type="text" id="mobile" name="mobile" value="<%= customer.mobile %>" class="border p-2 rounded w-full">
+            <input type="text" id="mobile" name="mobile" value="<%= customer.mobile || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="website" class="mb-1 font-medium text-gray-700">Website</label>
-            <input type="text" id="website" name="website" value="<%= customer.website %>" class="border p-2 rounded w-full">
+            <input type="text" id="website" name="website" value="<%= customer.website || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- IDENTITY & KYC -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Identity &amp; KYC</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label for="nationalId" class="mb-1 font-medium text-gray-700">National ID</label>
+            <input type="text" id="nationalId" name="nationalId" value="<%= customer.national_id || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="dateOfBirth" class="mb-1 font-medium text-gray-700">Date of Birth</label>
+            <input type="date" id="dateOfBirth" name="dateOfBirth" value="<%= customer.date_of_birth ? new Date(customer.date_of_birth).toISOString().slice(0,10) : '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="secondaryPhone" class="mb-1 font-medium text-gray-700">Secondary Phone</label>
+            <input type="text" id="secondaryPhone" name="secondaryPhone" value="<%= customer.secondary_phone || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="kycStatus" class="mb-1 font-medium text-gray-700">KYC Status</label>
+            <select id="kycStatus" name="kycStatus" class="border p-2 rounded w-full">
+              <option value="pending" <%= customer.kyc_status === 'pending' ? 'selected' : '' %>>Pending</option>
+              <option value="verified" <%= customer.kyc_status === 'verified' ? 'selected' : '' %>>Verified</option>
+              <option value="rejected" <%= customer.kyc_status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="kycVerifiedAt" class="mb-1 font-medium text-gray-700">KYC Verified At</label>
+            <input type="datetime-local" id="kycVerifiedAt" name="kycVerifiedAt" value="<%= customer.kyc_verified_at ? new Date(customer.kyc_verified_at).toISOString().slice(0,16) : '' %>" class="border p-2 rounded w-full">
           </div>
 
         </div>
@@ -63,27 +100,27 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col col-span-2">
             <label for="billingStreet" class="mb-1 font-medium text-gray-700">Street</label>
-            <input type="text" id="billingStreet" name="billingStreet" value="<%= customer.billing_street %>" class="border p-2 rounded w-full">
+            <input type="text" id="billingStreet" name="billingStreet" value="<%= customer.billing_street || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="billingCity" class="mb-1 font-medium text-gray-700">City</label>
-            <input type="text" id="billingCity" name="billingCity" value="<%= customer.billing_city %>" class="border p-2 rounded w-full">
+            <input type="text" id="billingCity" name="billingCity" value="<%= customer.billing_city || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="billingState" class="mb-1 font-medium text-gray-700">State</label>
-            <input type="text" id="billingState" name="billingState" value="<%= customer.billing_state %>" class="border p-2 rounded w-full">
+            <input type="text" id="billingState" name="billingState" value="<%= customer.billing_state || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="billingPostalCode" class="mb-1 font-medium text-gray-700">Postal Code</label>
-            <input type="text" id="billingPostalCode" name="billingPostalCode" value="<%= customer.billing_postal_code %>" class="border p-2 rounded w-full">
+            <input type="text" id="billingPostalCode" name="billingPostalCode" value="<%= customer.billing_postal_code || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="billingCountry" class="mb-1 font-medium text-gray-700">Country</label>
-            <input type="text" id="billingCountry" name="billingCountry" value="<%= customer.billing_country %>" class="border p-2 rounded w-full">
+            <input type="text" id="billingCountry" name="billingCountry" value="<%= customer.billing_country || '' %>" class="border p-2 rounded w-full">
           </div>
         </div>
       </div>
@@ -94,62 +131,164 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col col-span-2">
             <label for="shippingStreet" class="mb-1 font-medium text-gray-700">Street</label>
-            <input type="text" id="shippingStreet" name="shippingStreet" value="<%= customer.shipping_street %>" class="border p-2 rounded w-full">
+            <input type="text" id="shippingStreet" name="shippingStreet" value="<%= customer.shipping_street || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="shippingCity" class="mb-1 font-medium text-gray-700">City</label>
-            <input type="text" id="shippingCity" name="shippingCity" value="<%= customer.shipping_city %>" class="border p-2 rounded w-full">
+            <input type="text" id="shippingCity" name="shippingCity" value="<%= customer.shipping_city || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="shippingState" class="mb-1 font-medium text-gray-700">State</label>
-            <input type="text" id="shippingState" name="shippingState" value="<%= customer.shipping_state %>" class="border p-2 rounded w-full">
+            <input type="text" id="shippingState" name="shippingState" value="<%= customer.shipping_state || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="shippingPostalCode" class="mb-1 font-medium text-gray-700">Postal Code</label>
-            <input type="text" id="shippingPostalCode" name="shippingPostalCode" value="<%= customer.shipping_postal_code %>" class="border p-2 rounded w-full">
+            <input type="text" id="shippingPostalCode" name="shippingPostalCode" value="<%= customer.shipping_postal_code || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="shippingCountry" class="mb-1 font-medium text-gray-700">Country</label>
-            <input type="text" id="shippingCountry" name="shippingCountry" value="<%= customer.shipping_country %>" class="border p-2 rounded w-full">
+            <input type="text" id="shippingCountry" name="shippingCountry" value="<%= customer.shipping_country || '' %>" class="border p-2 rounded w-full">
           </div>
         </div>
       </div>
 
-      <!-- FINANCIAL INFORMATION -->
+      <!-- CREDIT RISK -->
       <div>
-        <h2 class="text-lg font-semibold mb-4">Financial Information</h2>
+        <h2 class="text-lg font-semibold mb-4">Credit Risk</h2>
         <div class="grid grid-cols-2 gap-4">
 
           <div class="flex flex-col">
-            <label for="taxNumber" class="mb-1 font-medium text-gray-700">Tax Number</label>
-            <input type="text" id="taxNumber" name="taxNumber" value="<%= customer.tax_number %>" class="border p-2 rounded w-full">
+            <label for="riskRating" class="mb-1 font-medium text-gray-700">Risk Rating</label>
+            <select id="riskRating" name="riskRating" class="border p-2 rounded w-full">
+              <option value="" <%= !customer.risk_rating ? 'selected' : '' %>>— Not rated —</option>
+              <option value="low" <%= customer.risk_rating === 'low' ? 'selected' : '' %>>Low</option>
+              <option value="medium" <%= customer.risk_rating === 'medium' ? 'selected' : '' %>>Medium</option>
+              <option value="high" <%= customer.risk_rating === 'high' ? 'selected' : '' %>>High</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="creditScore" class="mb-1 font-medium text-gray-700">Credit Score</label>
+            <input type="number" min="1" step="1" id="creditScore" name="creditScore" value="<%= customer.credit_score || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="isBlacklisted" class="mb-1 font-medium text-gray-700">Blacklisted</label>
+            <select id="isBlacklisted" name="isBlacklisted" class="border p-2 rounded w-full">
+              <option value="No" <%= !customer.is_blacklisted ? 'selected' : '' %>>No</option>
+              <option value="Yes" <%= customer.is_blacklisted ? 'selected' : '' %>>Yes</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="blacklistReason" class="mb-1 font-medium text-gray-700">Blacklist Reason</label>
+            <input type="text" id="blacklistReason" name="blacklistReason" value="<%= customer.blacklist_reason || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="guarantorName" class="mb-1 font-medium text-gray-700">Guarantor Name</label>
+            <input type="text" id="guarantorName" name="guarantorName" value="<%= customer.guarantor_name || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="guarantorPhone" class="mb-1 font-medium text-gray-700">Guarantor Phone</label>
+            <input type="text" id="guarantorPhone" name="guarantorPhone" value="<%= customer.guarantor_phone || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="guarantorNationalId" class="mb-1 font-medium text-gray-700">Guarantor National ID</label>
+            <input type="text" id="guarantorNationalId" name="guarantorNationalId" value="<%= customer.guarantor_national_id || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="guarantorRelationship" class="mb-1 font-medium text-gray-700">Guarantor Relationship</label>
+            <input type="text" id="guarantorRelationship" name="guarantorRelationship" value="<%= customer.guarantor_relationship || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- FINANCIAL -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Financial</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label for="vatRegistrationNumber" class="mb-1 font-medium text-gray-700">VAT Registration Number</label>
+            <input type="text" id="vatRegistrationNumber" name="vatRegistrationNumber" value="<%= customer.vat_registration_number || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="crNumber" class="mb-1 font-medium text-gray-700">CR Number</label>
+            <input type="text" id="crNumber" name="crNumber" value="<%= customer.cr_number || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="creditLimit" class="mb-1 font-medium text-gray-700">Credit Limit</label>
-            <input type="number" id="creditLimit" name="creditLimit" value="<%= customer.credit_limit %>" class="border p-2 rounded w-full">
+            <input type="number" id="creditLimit" name="creditLimit" value="<%= customer.credit_limit || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
             <label for="currency" class="mb-1 font-medium text-gray-700">Currency</label>
-            <input type="text" id="currency" name="currency" value="<%= customer.currency %>" class="border p-2 rounded w-full">
+            <input type="text" id="currency" name="currency" value="<%= customer.currency || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col">
-            <label for="taxid" class="mb-1 font-medium text-gray-700">Tax ID</label>
-            <input type="text" id="taxid" name="taxid" value="<%= customer.tax_id %>" class="border p-2 rounded w-full">
-          </div>
-
-          <div class="flex flex-col">
-            <label for="IsTaxable" class="mb-1 font-medium text-gray-700">Is Taxable</label>
-            <select id="IsTaxable" name="IsTaxable" class="border p-2 rounded w-full">
-              <option value="Yes" <%= customer.is_taxable === 'Yes' ? 'selected' : '' %>>Yes</option>
-              <option value="No" <%= customer.is_taxable === 'No' ? 'selected' : '' %>>No</option>
+            <label for="isTaxable" class="mb-1 font-medium text-gray-700">Is Taxable</label>
+            <select id="isTaxable" name="isTaxable" class="border p-2 rounded w-full">
+              <option value="Yes" <%= customer.is_taxable ? 'selected' : '' %>>Yes</option>
+              <option value="No" <%= !customer.is_taxable ? 'selected' : '' %>>No</option>
             </select>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="preferredPaymentMethod" class="mb-1 font-medium text-gray-700">Preferred Payment Method</label>
+            <input type="text" id="preferredPaymentMethod" name="preferredPaymentMethod" value="<%= customer.preferred_payment_method || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="openingBalance" class="mb-1 font-medium text-gray-700">Opening Balance</label>
+            <input type="number" step="0.01" id="openingBalance" name="openingBalance" value="<%= customer.opening_balance || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="paymentTermsDays" class="mb-1 font-medium text-gray-700">Payment Terms (days)</label>
+            <input type="number" min="0" step="1" id="paymentTermsDays" name="paymentTermsDays" value="<%= customer.payment_terms_days || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="preferredLanguage" class="mb-1 font-medium text-gray-700">Preferred Language</label>
+            <select id="preferredLanguage" name="preferredLanguage" class="border p-2 rounded w-full">
+              <option value="en" <%= customer.preferred_language === 'en' ? 'selected' : '' %>>English</option>
+              <option value="ar" <%= customer.preferred_language === 'ar' ? 'selected' : '' %>>Arabic</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- OPERATIONAL -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Operational</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label for="assignedAgentId" class="mb-1 font-medium text-gray-700">Assigned Agent ID</label>
+            <input type="number" id="assignedAgentId" name="assignedAgentId" value="<%= customer.assigned_agent_id || '' %>" placeholder="No users table yet" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="customerSince" class="mb-1 font-medium text-gray-700">Customer Since</label>
+            <input type="date" id="customerSince" name="customerSince" value="<%= customer.customer_since ? new Date(customer.customer_since).toISOString().slice(0,10) : '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col col-span-2">
+            <label for="metadata" class="mb-1 font-medium text-gray-700">Metadata (JSON)</label>
+            <textarea id="metadata" name="metadata" class="border p-2 rounded w-full font-mono text-sm"><%= customer.metadata ? JSON.stringify(customer.metadata) : '' %></textarea>
           </div>
 
         </div>
@@ -180,17 +319,17 @@
 
           <div class="flex flex-col">
             <label for="source" class="mb-1 font-medium text-gray-700">Source</label>
-            <input type="text" id="source" name="source" value="<%= customer.source %>" class="border p-2 rounded w-full">
+            <input type="text" id="source" name="source" value="<%= customer.source || '' %>" class="border p-2 rounded w-full">
           </div>
 
           <div class="flex flex-col col-span-2">
             <label for="notes" class="mb-1 font-medium text-gray-700">Notes</label>
-            <textarea id="notes" name="notes" class="border p-2 rounded w-full"><%= customer.notes %></textarea>
+            <textarea id="notes" name="notes" class="border p-2 rounded w-full"><%= customer.notes || '' %></textarea>
           </div>
 
           <div class="flex flex-col col-span-2">
             <label for="tags" class="mb-1 font-medium text-gray-700">Tags</label>
-            <input type="text" id="tags" name="tags" value="<%= customer.tags %>" class="border p-2 rounded w-full">
+            <input type="text" id="tags" name="tags" value="<%= customer.tags || '' %>" class="border p-2 rounded w-full">
           </div>
 
         </div>

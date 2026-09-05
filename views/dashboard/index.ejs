@@ -1,0 +1,95 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<main class="lg:ml-64 p-8 bg-gray-100 min-h-screen">
+  <div class="max-w-7xl mx-auto">
+
+    <div class="mb-8">
+      <h1 class="text-2xl font-medium text-gray-900">Dashboard</h1>
+      <p class="text-sm text-gray-500 mt-1">Overview of credit accounts and collections</p>
+    </div>
+
+    <!-- Metric cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-500 mb-1">Total outstanding</p>
+        <p class="text-2xl font-medium text-gray-900" id="stat-outstanding">—</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-500 mb-1">Due today</p>
+        <p class="text-2xl font-medium text-gray-900" id="stat-due-today">—</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-500 mb-1">Overdue</p>
+        <p class="text-2xl font-medium text-red-600" id="stat-overdue">—</p>
+      </div>
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <p class="text-sm text-gray-500 mb-1">Active accounts</p>
+        <p class="text-2xl font-medium text-gray-900" id="stat-active">—</p>
+      </div>
+    </div>
+
+    <!-- Needs attention -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-medium text-gray-900">Needs attention</h2>
+        <span class="text-xs text-red-700 bg-red-50 px-3 py-1 rounded-md" id="overdue-badge"></span>
+      </div>
+      <div class="flex gap-2 mb-4" id="attention-tabs">
+        <button type="button" data-bucket="overdue" class="attention-tab px-3 py-1.5 text-sm rounded-md border">Overdue</button>
+        <button type="button" data-bucket="due_today" class="attention-tab px-3 py-1.5 text-sm rounded-md border">Due today</button>
+        <button type="button" data-bucket="upcoming" class="attention-tab px-3 py-1.5 text-sm rounded-md border">Upcoming</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-500 border-b border-gray-200">
+              <th class="pb-2 font-normal">Account</th>
+              <th class="pb-2 font-normal">Customer</th>
+              <th class="pb-2 font-normal text-right">Amount due</th>
+              <th class="pb-2 font-normal text-right">Days late</th>
+              <th class="pb-2 font-normal text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="overdue-table">
+            <tr><td colspan="5" class="py-4 text-center text-gray-400">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Recent repayments -->
+      <div class="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 class="text-base font-medium text-gray-900 mb-4">Recent repayments</h2>
+        <div id="recent-payments" class="space-y-2">
+          <p class="text-sm text-gray-400">Loading…</p>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 class="text-base font-medium text-gray-900 mb-4">Quick actions</h2>
+        <div class="space-y-2">
+          <a href="/credit-accounts/create"
+             class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition">
+            New credit account
+          </a>
+          <a href="/repayments/create"
+             class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition">
+            Record repayment
+          </a>
+          <a href="/invoices/create"
+             class="block w-full text-center px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition">
+            New invoice
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="/js/dashboard.js"></script>
+
+<%- include('../partials/footer') %>

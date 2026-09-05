@@ -6,5 +6,6 @@ const repaymentsController = require('../../../controllers/repayments.controller
 
 router.get('/', repaymentsController.getRepayments);
 router.post('/', repaymentsController.createRepayment);
+router.post('/preview', repaymentsController.previewRepayment);
 
 module.exports = router;

@@ -97,15 +97,12 @@ const fetchSchedule = async (client, creditAccountId) => {
   return result.rows;
 };
 
-// CREATE credit account (header + repayment schedule + open event) — the
-// important transaction.
-const createCreditAccount = async (tenantId, data) => {
-  const accountNumber = (data.accountNumber || '').trim();
-  if (!validator.isLength(accountNumber, { min: 1 })) {
-    const err = new Error('accountNumber is required');
-    err.status = 400;
-    throw err;
-  }
+// Pure validation + computation shared by createCreditAccount and
+// previewCreditAccount — the same math must produce the same schedule
+// whether or not anything ends up persisted. Deliberately does NOT
+// validate accountNumber (a preview has no reason to need one yet; it's
+// only meaningful at actual creation time) and does no DB access at all.
+const computeCreditAccountPlan = (data) => {
   if (!data.customerId) {
     const err = new Error('customerId is required');
     err.status = 400;
@@ -201,6 +198,35 @@ const createCreditAccount = async (tenantId, data) => {
 
   const schedule = buildSchedule(data, financedAmount, markupAmount, totalPayableAmount);
 
+  return {
+    customerId: data.customerId,
+    vendorId: data.vendorId || null,
+    sourceDocumentId: data.sourceDocumentId || null,
+    principalAmount, downPaymentAmount, markupAmount, financedAmount, totalPayableAmount,
+    installmentType: data.installmentType, installmentFrequency, installmentCount,
+    startDate: data.startDate, maturityDate: data.maturityDate,
+    schedule,
+  };
+};
+
+// Read-only preview: runs the exact same computeCreditAccountPlan a real
+// create would, and returns the plan (totals + full schedule) without
+// touching the database at all. Used by the guided create form so its
+// preview can never drift from what createCreditAccount actually persists.
+const previewCreditAccount = (data) => computeCreditAccountPlan(data);
+
+// CREATE credit account (header + repayment schedule + open event) — the
+// important transaction.
+const createCreditAccount = async (tenantId, data) => {
+  const accountNumber = (data.accountNumber || '').trim();
+  if (!validator.isLength(accountNumber, { min: 1 })) {
+    const err = new Error('accountNumber is required');
+    err.status = 400;
+    throw err;
+  }
+
+  const plan = computeCreditAccountPlan(data);
+
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -232,17 +258,17 @@ const createCreditAccount = async (tenantId, data) => {
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
       ) RETURNING *`,
       [
-        tenantId, accountNumber, data.customerId, data.vendorId || null, data.sourceDocumentId || null,
-        principalAmount, downPaymentAmount, markupAmount, financedAmount, totalPayableAmount,
-        data.installmentType, installmentFrequency, installmentCount,
-        data.startDate, data.maturityDate, 'draft',
-        financedAmount, markupAmount, 0,
+        tenantId, accountNumber, plan.customerId, plan.vendorId, plan.sourceDocumentId,
+        plan.principalAmount, plan.downPaymentAmount, plan.markupAmount, plan.financedAmount, plan.totalPayableAmount,
+        plan.installmentType, plan.installmentFrequency, plan.installmentCount,
+        plan.startDate, plan.maturityDate, 'draft',
+        plan.financedAmount, plan.markupAmount, 0,
         data.createdBy || null,
       ]
     );
     const account = accountResult.rows[0];
 
-    for (const line of schedule) {
+    for (const line of plan.schedule) {
       await client.query(
         `INSERT INTO repayment_schedules (
           company_id, credit_account_id, installment_number, due_date,
@@ -262,9 +288,9 @@ const createCreditAccount = async (tenantId, data) => {
       [
         tenantId, account.id,
         JSON.stringify({
-          accountNumber, principalAmount, downPaymentAmount, markupAmount,
-          financedAmount, totalPayableAmount, installmentType: data.installmentType,
-          installmentCount, installmentFrequency,
+          accountNumber, principalAmount: plan.principalAmount, downPaymentAmount: plan.downPaymentAmount,
+          markupAmount: plan.markupAmount, financedAmount: plan.financedAmount, totalPayableAmount: plan.totalPayableAmount,
+          installmentType: plan.installmentType, installmentCount: plan.installmentCount, installmentFrequency: plan.installmentFrequency,
         }),
       ]
     );
@@ -281,21 +307,44 @@ const createCreditAccount = async (tenantId, data) => {
   }
 };
 
+// List view needs more than the raw row — customer_name (no join column on
+// credit_accounts itself) and next_due_date/days_overdue (derived from the
+// account's open repayment_schedules rows). Computed here once, server-
+// side, rather than duplicated per-consumer or in frontend JS.
 const getAllCreditAccounts = async (tenantId, filters = {}) => {
-  const conditions = ['company_id = $1'];
+  const conditions = ['ca.company_id = $1'];
   const params = [tenantId];
 
   if (filters.status) {
     params.push(filters.status);
-    conditions.push(`status = $${params.length}`);
+    conditions.push(`ca.status = $${params.length}`);
   }
   if (filters.customerId) {
     params.push(filters.customerId);
-    conditions.push(`customer_id = $${params.length}`);
+    conditions.push(`ca.customer_id = $${params.length}`);
   }
 
   const result = await db.query(
-    `SELECT * FROM credit_accounts WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC`,
+    `SELECT
+       ca.*,
+       COALESCE(NULLIF(TRIM(c.company_name), ''),
+                TRIM(CONCAT(c.first_name, ' ', c.last_name))) AS customer_name,
+       next_due.due_date AS next_due_date,
+       CASE WHEN next_due.due_date IS NOT NULL AND next_due.due_date < CURRENT_DATE
+            THEN (CURRENT_DATE - next_due.due_date)
+            ELSE 0
+       END AS days_overdue
+     FROM credit_accounts ca
+     JOIN customers c ON c.id = ca.customer_id
+     LEFT JOIN LATERAL (
+       SELECT rs.due_date
+       FROM repayment_schedules rs
+       WHERE rs.credit_account_id = ca.id AND rs.due_status NOT IN ('paid', 'waived')
+       ORDER BY rs.due_date ASC
+       LIMIT 1
+     ) next_due ON true
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY ca.created_at DESC`,
     params
   );
   return result.rows;
@@ -303,7 +352,12 @@ const getAllCreditAccounts = async (tenantId, filters = {}) => {
 
 const getCreditAccountById = async (tenantId, id) => {
   const result = await db.query(
-    'SELECT * FROM credit_accounts WHERE company_id = $1 AND id = $2',
+    `SELECT ca.*,
+            COALESCE(NULLIF(TRIM(c.company_name), ''),
+                     TRIM(CONCAT(c.first_name, ' ', c.last_name))) AS customer_name
+     FROM credit_accounts ca
+     JOIN customers c ON c.id = ca.customer_id
+     WHERE ca.company_id = $1 AND ca.id = $2`,
     [tenantId, id]
   );
   const account = result.rows[0];
@@ -312,10 +366,31 @@ const getCreditAccountById = async (tenantId, id) => {
   }
 
   const schedule = await db.query(
-    'SELECT * FROM repayment_schedules WHERE company_id = $1 AND credit_account_id = $2 ORDER BY installment_number',
+    `SELECT *,
+            CASE WHEN due_status NOT IN ('paid', 'waived') AND due_date < CURRENT_DATE
+                 THEN (CURRENT_DATE - due_date) ELSE 0
+            END AS days_overdue
+     FROM repayment_schedules WHERE company_id = $1 AND credit_account_id = $2 ORDER BY installment_number`,
     [tenantId, id]
   );
   return { ...account, repaymentSchedule: schedule.rows };
+};
+
+// Read-only activity feed for the detail page, newest first.
+const getCreditAccountEvents = async (tenantId, id) => {
+  const account = await db.query(
+    'SELECT id FROM credit_accounts WHERE company_id = $1 AND id = $2',
+    [tenantId, id]
+  );
+  if (account.rows.length === 0) {
+    return undefined;
+  }
+
+  const result = await db.query(
+    'SELECT * FROM credit_account_events WHERE company_id = $1 AND credit_account_id = $2 ORDER BY created_at DESC',
+    [tenantId, id]
+  );
+  return result.rows;
 };
 
 // Status transitions are business logic, validated against
@@ -377,7 +452,9 @@ module.exports = {
   INSTALLMENT_FREQUENCIES,
   ALLOWED_STATUS_TRANSITIONS,
   createCreditAccount,
+  previewCreditAccount,
   getAllCreditAccounts,
   getCreditAccountById,
+  getCreditAccountEvents,
   updateCreditAccountStatus,
 };

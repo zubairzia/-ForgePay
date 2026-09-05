@@ -77,6 +77,39 @@
         </div>
       </div>
 
+      <!-- IDENTITY & KYC -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Identity &amp; KYC</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">National ID</label>
+            <input type="text" value="<%= customer.national_id || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Date of Birth</label>
+            <input type="text" value="<%= customer.date_of_birth ? new Date(customer.date_of_birth).toLocaleDateString() : '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Secondary Phone</label>
+            <input type="text" value="<%= customer.secondary_phone || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">KYC Status</label>
+            <input type="text" value="<%= customer.kyc_status || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">KYC Verified At</label>
+            <input type="text" value="<%= customer.kyc_verified_at ? new Date(customer.kyc_verified_at).toLocaleString() : '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+        </div>
+      </div>
+
       <!-- BILLING ADDRESS -->
       <div>
         <h2 class="text-lg font-semibold mb-4">Billing Address</h2>
@@ -143,14 +176,67 @@
         </div>
       </div>
 
-      <!-- FINANCIAL INFORMATION -->
+      <!-- CREDIT RISK -->
       <div>
-        <h2 class="text-lg font-semibold mb-4">Financial Information</h2>
+        <h2 class="text-lg font-semibold mb-4">Credit Risk</h2>
         <div class="grid grid-cols-2 gap-4">
 
           <div class="flex flex-col">
-            <label class="mb-1 font-medium text-gray-700">Tax Number</label>
-            <input type="text" value="<%= customer.tax_number || '' %>" class="border p-2 rounded w-full" disabled>
+            <label class="mb-1 font-medium text-gray-700">Risk Rating</label>
+            <input type="text" value="<%= customer.risk_rating || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Credit Score</label>
+            <input type="text" value="<%= customer.credit_score || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Blacklisted</label>
+            <input type="text" value="<%= customer.is_blacklisted ? 'Yes' : 'No' %>" class="border p-2 rounded w-full <%= customer.is_blacklisted ? 'text-red-600 font-semibold' : '' %>" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Blacklist Reason</label>
+            <input type="text" value="<%= customer.blacklist_reason || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Guarantor Name</label>
+            <input type="text" value="<%= customer.guarantor_name || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Guarantor Phone</label>
+            <input type="text" value="<%= customer.guarantor_phone || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Guarantor National ID</label>
+            <input type="text" value="<%= customer.guarantor_national_id || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Guarantor Relationship</label>
+            <input type="text" value="<%= customer.guarantor_relationship || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- FINANCIAL -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Financial</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">VAT Registration Number</label>
+            <input type="text" value="<%= customer.vat_registration_number || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">CR Number</label>
+            <input type="text" value="<%= customer.cr_number || '' %>" class="border p-2 rounded w-full" disabled>
           </div>
 
           <div class="flex flex-col">
@@ -164,13 +250,51 @@
           </div>
 
           <div class="flex flex-col">
-            <label class="mb-1 font-medium text-gray-700">Tax ID</label>
-            <input type="text" value="<%= customer.tax_id || '' %>" class="border p-2 rounded w-full" disabled>
+            <label class="mb-1 font-medium text-gray-700">Is Taxable</label>
+            <input type="text" value="<%= customer.is_taxable ? 'Yes' : 'No' %>" class="border p-2 rounded w-full" disabled>
           </div>
 
           <div class="flex flex-col">
-            <label class="mb-1 font-medium text-gray-700">Is Taxable</label>
-            <input type="text" value="<%= customer.is_taxable ? 'Yes' : 'No' %>" class="border p-2 rounded w-full" disabled>
+            <label class="mb-1 font-medium text-gray-700">Preferred Payment Method</label>
+            <input type="text" value="<%= customer.preferred_payment_method || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Opening Balance</label>
+            <input type="text" value="<%= customer.opening_balance || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Payment Terms (days)</label>
+            <input type="text" value="<%= customer.payment_terms_days || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Preferred Language</label>
+            <input type="text" value="<%= customer.preferred_language || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- OPERATIONAL -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Operational</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Assigned Agent ID</label>
+            <input type="text" value="<%= customer.assigned_agent_id || '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Customer Since</label>
+            <input type="text" value="<%= customer.customer_since ? new Date(customer.customer_since).toLocaleDateString() : '' %>" class="border p-2 rounded w-full" disabled>
+          </div>
+
+          <div class="flex flex-col col-span-2">
+            <label class="mb-1 font-medium text-gray-700">Metadata</label>
+            <textarea class="border p-2 rounded w-full font-mono text-sm" disabled><%= customer.metadata ? JSON.stringify(customer.metadata) : '' %></textarea>
           </div>
 
         </div>
