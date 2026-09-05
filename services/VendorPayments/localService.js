@@ -37,17 +37,36 @@ const getVendorPaymentById = async (tenantId, id) => {
   return { ...vendorPayment, allocations: allocations.rows };
 };
 
-// See the identical note in Payments/localService.js: no dedicated
-// sequence table for payment numbering here either, so this relies on the
-// (company_id, payment_number) UNIQUE constraint on vendor_payments as the
-// backstop rather than a SELECT ... FOR UPDATE lock.
+// Per-tenant sequential payment numbering, same SELECT ... FOR UPDATE
+// pattern as nextPaymentNumber in Payments/localService.js and
+// nextDocumentNumber in Documents/localService.js — locks the row in
+// payment_number_sequences (sequence_type = 'vendor_payment') for the
+// rest of this transaction so two concurrent vendor payments can't both
+// read the same last_number. The (company_id, payment_number) UNIQUE
+// index on vendor_payments remains as a backstop for the "no row yet"
+// edge case.
 const nextVendorPaymentNumber = async (client, tenantId) => {
-  const result = await client.query(
-    'SELECT COUNT(*)::int AS count FROM vendor_payments WHERE company_id = $1',
+  const seqResult = await client.query(
+    "SELECT last_number FROM payment_number_sequences WHERE company_id = $1 AND sequence_type = 'vendor_payment' FOR UPDATE",
     [tenantId]
   );
-  const next = result.rows[0].count + 1;
-  return `VPMT-${String(next).padStart(6, '0')}`;
+
+  let nextNumber;
+  if (seqResult.rows.length === 0) {
+    nextNumber = 1;
+    await client.query(
+      "INSERT INTO payment_number_sequences (company_id, sequence_type, last_number) VALUES ($1, 'vendor_payment', $2)",
+      [tenantId, nextNumber]
+    );
+  } else {
+    nextNumber = seqResult.rows[0].last_number + 1;
+    await client.query(
+      "UPDATE payment_number_sequences SET last_number = $1, updated_at = now() WHERE company_id = $2 AND sequence_type = 'vendor_payment'",
+      [nextNumber, tenantId]
+    );
+  }
+
+  return `VPMT-${String(nextNumber).padStart(6, '0')}`;
 };
 
 // The big transaction: create the vendor payment, allocate it across the

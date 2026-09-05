@@ -37,21 +37,35 @@ const getPaymentById = async (tenantId, id) => {
   return { ...payment, allocations: allocations.rows };
 };
 
-// Unlike documents, there's no payment_number_sequences table in the
-// schema, so this doesn't get the same SELECT ... FOR UPDATE race
-// protection as document numbering. The (company_id, payment_number)
-// UNIQUE constraint on payments is the backstop if two concurrent
-// requests ever compute the same count — same belt-and-suspenders
-// pattern already used for customer email uniqueness. If payment
-// numbering needs the same race-proof guarantee as documents, give it its
-// own sequence table later.
+// Per-tenant sequential payment numbering, same SELECT ... FOR UPDATE
+// pattern as nextDocumentNumber in services/Documents/localService.js —
+// locks the row in payment_number_sequences for the rest of this
+// transaction so two concurrent payments can't both read the same
+// last_number. The (company_id, payment_number) UNIQUE index on payments
+// remains as a backstop for the "no row yet" edge case (see the identical
+// comment in Documents/localService.js's nextDocumentNumber).
 const nextPaymentNumber = async (client, tenantId) => {
-  const result = await client.query(
-    'SELECT COUNT(*)::int AS count FROM payments WHERE company_id = $1',
+  const seqResult = await client.query(
+    "SELECT last_number FROM payment_number_sequences WHERE company_id = $1 AND sequence_type = 'payment' FOR UPDATE",
     [tenantId]
   );
-  const next = result.rows[0].count + 1;
-  return `PMT-${String(next).padStart(6, '0')}`;
+
+  let nextNumber;
+  if (seqResult.rows.length === 0) {
+    nextNumber = 1;
+    await client.query(
+      "INSERT INTO payment_number_sequences (company_id, sequence_type, last_number) VALUES ($1, 'payment', $2)",
+      [tenantId, nextNumber]
+    );
+  } else {
+    nextNumber = seqResult.rows[0].last_number + 1;
+    await client.query(
+      "UPDATE payment_number_sequences SET last_number = $1, updated_at = now() WHERE company_id = $2 AND sequence_type = 'payment'",
+      [nextNumber, tenantId]
+    );
+  }
+
+  return `PMT-${String(nextNumber).padStart(6, '0')}`;
 };
 
 // The big transaction: create the payment, allocate it across the
