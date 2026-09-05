@@ -12,4 +12,6 @@ router.use('/creditnotes', require('./creditnotes.routes'));
 router.use('/payments', require('./payments.routes'));
 router.use('/paymentsmade', require('./paymentsmade.routes'));
 
+router.use('/credit-accounts', require('./creditaccounts.routes'));
+
 module.exports = router;

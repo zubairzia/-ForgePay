@@ -214,4 +214,8 @@ module.exports = {
   getAllPayments,
   getPaymentById,
   recordPayment,
+  // Exported for reuse by services/Repayments/localService.js — a
+  // repayment against a credit account still creates a row in this same
+  // `payments` table, so it needs the same sequential numbering.
+  nextPaymentNumber,
 };
