@@ -13,8 +13,8 @@ const getItems = async (req, res, next) => {
 // CREATE item
 const createItem = async (req, res, next) => {
   try {
-    const item = await localService.createLocalItem(req.tenantId, req.body);
-    res.status(201).json(item);
+    await localService.createLocalItem(req.tenantId, req.body);
+    res.redirect('/items');
   } catch (error) {
     next(error);
   }
@@ -30,7 +30,7 @@ const searchItems = async (req, res, next) => {
   }
 };
 
-// GET single item
+// GET single item (API)
 const getItemById = async (req, res, next) => {
   try {
     const item = await localService.getItemById(req.tenantId, req.params.id);
@@ -43,7 +43,7 @@ const getItemById = async (req, res, next) => {
   }
 };
 
-// UPDATE item
+// UPDATE item (API)
 const updateItem = async (req, res, next) => {
   try {
     const item = await localService.updateLocalItem(req.tenantId, req.params.id, req.body);
@@ -56,10 +56,50 @@ const updateItem = async (req, res, next) => {
   }
 };
 
+// Render item detail page
+const viewItem = async (req, res, next) => {
+  try {
+    const item = await localService.getItemById(req.tenantId, req.params.id);
+    if (!item) {
+      return res.status(404).render('items/not-found', { itemId: req.params.id });
+    }
+    res.render('items/detail', { item });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Render item edit page
+const editItem = async (req, res, next) => {
+  try {
+    const item = await localService.getItemById(req.tenantId, req.params.id);
+    if (!item) {
+      return res.status(404).render('items/not-found', { itemId: req.params.id });
+    }
+    res.render('items/edit', { item });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update item from the web edit form, then redirect back to the detail page
+const submitItemUpdate = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    await localService.updateLocalItem(req.tenantId, id, req.body);
+    res.redirect(`/items/${id}/view`);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getItems,
   createItem,
   searchItems,
   getItemById,
   updateItem,
+  viewItem,
+  editItem,
+  submitItemUpdate,
 };

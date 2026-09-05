@@ -22,18 +22,22 @@ const webRoutes = require('./web');
 // is added.
 const apiV1Routes = require('./api/v1');
 const companiesRoutes = require('./api/v1/companies.routes');
+const companiesWebRoutes = require('./web/companies.web');
 
 // Mount routes
-router.use('/', webTenantMiddleware, webRoutes);
 
 // Companies (tenants) are the one resource that must be creatable and
 // readable BEFORE any tenant context exists — a company IS the tenant, so
 // there's no company_id to resolve yet when one is being created (e.g. a
-// signup flow calling POST /api/v1/companies). This is mounted here, ahead
-// of the tenantMiddleware-gated block below, so Express matches
-// /api/v1/companies/* first and tenantMiddleware never runs for it.
+// signup flow calling POST /api/v1/companies, or a user visiting
+// /companies/create). Both the API and web routers for companies are
+// mounted here, ahead of their respective tenant-gated blocks below, so
+// Express matches /companies* and /api/v1/companies* first and neither
+// tenantMiddleware nor webTenantMiddleware ever runs for them.
+router.use('/', companiesWebRoutes);
 router.use('/api/v1/companies', companiesRoutes);
 
+router.use('/', webTenantMiddleware, webRoutes);
 router.use('/api/v1', tenantMiddleware, apiV1Routes);
 
 module.exports = router;

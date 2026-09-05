@@ -1,0 +1,156 @@
+<%- include('../partials/header') %>
+<%- include('../partials/sidebar') %>
+
+<main class="lg:ml-64 p-8 bg-gray-100 min-h-screen">
+
+  <div class="max-w-6xl mx-auto mt-10 bg-white p-8 rounded-lg shadow">
+
+    <h1 class="text-2xl font-bold mb-2">Edit <%= meta.singular %></h1>
+    <p class="text-sm text-gray-500 mb-8"><%= document.document_number %></p>
+
+    <form action="<%= meta.basePath %>/<%= document.id %>/update" method="POST" class="space-y-10">
+
+      <!-- HEADER (customer/vendor/type are immutable after creation) -->
+      <div>
+        <h2 class="text-lg font-semibold mb-4"><%= meta.singular %> Details</h2>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700"><%= document.direction === 'purchase' ? 'Vendor' : 'Customer' %></label>
+            <input type="text" value="<%= document.direction === 'purchase' ? document.vendor_id : document.customer_id %>" class="border p-2 rounded w-full bg-gray-50" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label class="mb-1 font-medium text-gray-700">Status</label>
+            <input type="text" value="<%= document.status %>" class="border p-2 rounded w-full bg-gray-50" disabled>
+          </div>
+
+          <div class="flex flex-col">
+            <label for="issueDate" class="mb-1 font-medium text-gray-700">Issue Date</label>
+            <input type="date" id="issueDate" name="issueDate" value="<%= document.issue_date ? new Date(document.issue_date).toISOString().slice(0,10) : '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="dueDate" class="mb-1 font-medium text-gray-700">Due Date</label>
+            <input type="date" id="dueDate" name="dueDate" value="<%= document.due_date ? new Date(document.due_date).toISOString().slice(0,10) : '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="currency" class="mb-1 font-medium text-gray-700">Currency</label>
+            <input type="text" id="currency" name="currency" value="<%= document.currency || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col">
+            <label for="referenceNumber" class="mb-1 font-medium text-gray-700">Reference Number</label>
+            <input type="text" id="referenceNumber" name="referenceNumber" value="<%= document.reference_number || '' %>" class="border p-2 rounded w-full">
+          </div>
+
+          <div class="flex flex-col col-span-2">
+            <label for="notes" class="mb-1 font-medium text-gray-700">Notes</label>
+            <textarea id="notes" name="notes" class="border p-2 rounded w-full"><%= document.notes || '' %></textarea>
+          </div>
+
+          <div class="flex flex-col col-span-2">
+            <label for="terms" class="mb-1 font-medium text-gray-700">Terms</label>
+            <textarea id="terms" name="terms" class="border p-2 rounded w-full"><%= document.terms || '' %></textarea>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- LINE ITEMS -->
+      <div>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">Line Items</h2>
+          <% if (document.status === 'draft') { %>
+            <button type="button" id="addLineBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-sm font-medium">
+              + Add Line
+            </button>
+          <% } %>
+        </div>
+
+        <% if (document.status === 'draft') { %>
+          <div class="overflow-x-auto border rounded">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Disc %</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Tax %</th>
+                  <th class="p-2 text-right text-xs font-medium text-gray-500 uppercase">Line Total</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody id="lineItemsBody"></tbody>
+            </table>
+          </div>
+
+          <div class="flex justify-end mt-4">
+            <div class="w-64 space-y-1 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Subtotal</span><span id="previewSubtotal">0.00</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tax</span><span id="previewTaxTotal">0.00</span></div>
+              <div class="flex justify-between font-semibold text-base border-t pt-1"><span>Total</span><span id="previewTotal">0.00</span></div>
+            </div>
+          </div>
+        <% } else { %>
+          <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded p-3 mb-4">
+            Line items can only be edited while this <%= meta.singular.toLowerCase() %> is in draft status
+            (currently <strong><%= document.status.replace('_', ' ') %></strong>).
+          </p>
+          <div class="overflow-x-auto border rounded">
+            <table class="min-w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+                  <th class="p-2 text-left text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                  <th class="p-2 text-right text-xs font-medium text-gray-500 uppercase">Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% document.lines.forEach(line => { %>
+                  <tr class="border-b">
+                    <td class="p-2"><%= line.description || '-' %></td>
+                    <td class="p-2"><%= line.quantity %></td>
+                    <td class="p-2"><%= line.unit_price %></td>
+                    <td class="p-2 text-right"><%= line.line_total %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="flex justify-between items-center">
+        <a href="<%= meta.basePath %>/<%= document.id %>/view" class="text-gray-600 hover:text-gray-900">← Back to <%= meta.singular %></a>
+        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition">
+          Update <%= meta.singular %>
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+
+</main>
+
+<% if (document.status === 'draft') { %>
+  <script id="itemsData" type="application/json"><%- JSON.stringify(items) %></script>
+  <script>window.__existingLines = <%- JSON.stringify(document.lines) %>;</script>
+  <script src="/js/documents.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.__existingLines && window.__existingLines.length > 0) {
+        window.__existingLines.forEach(line => window.__documentsFormAddRow(line));
+      } else {
+        window.__documentsFormAddRow();
+      }
+    });
+  </script>
+<% } %>
+
+<%- include('../partials/footer') %>

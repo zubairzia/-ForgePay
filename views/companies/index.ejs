@@ -10,9 +10,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
         <input
-          id="itemSearch"
+          id="companySearch"
           type="text"
-          placeholder="Search items..."
+          placeholder="Filter companies..."
           class="border rounded-lg pl-10 pr-3 py-2.5 w-full shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           autocomplete="off"
         >
@@ -20,10 +20,13 @@
     </div>
 
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Items</h1>
-      <a href="/items/create"
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Companies</h1>
+        <p class="text-sm text-gray-500 mt-1">Tenants provisioned on this platform.</p>
+      </div>
+      <a href="/companies/create"
          class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-        + New Item
+        + New Company
       </a>
     </div>
 
@@ -31,15 +34,15 @@
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Price</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Purchase Price</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Industry</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
           </tr>
         </thead>
-        <tbody id="itemsTable" class="bg-white divide-y divide-gray-200">
+        <tbody id="companiesTable" class="bg-white divide-y divide-gray-200">
           <!-- JS will populate rows -->
         </tbody>
       </table>
@@ -49,6 +52,6 @@
 
 </main>
 
-<script src="/js/items.js"></script>
+<script src="/js/companies.js"></script>
 
 <%- include('../partials/footer') %>

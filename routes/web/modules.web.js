@@ -6,28 +6,12 @@ const router = express.Router();
 // Each just renders its index view inside the shared header/sidebar layout,
 // matching the pattern used by customers.web.js.
 
-router.get('/vendors', (req, res) => {
-  res.render('vendors/index');
-});
-
-router.get('/invoices', (req, res) => {
-  res.render('invoices/index');
-});
-
-router.get('/items', (req, res) => {
-  res.render('items/index');
-});
-
 router.get('/paymentsmade', (req, res) => {
   res.render('paymentsmade/index');
 });
 
 router.get('/payments', (req, res) => {
   res.render('payments/index');
-});
-
-router.get('/creditnotes', (req, res) => {
-  res.render('creditnotes/index');
 });
 
 module.exports = router;

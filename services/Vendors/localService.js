@@ -91,9 +91,59 @@ const getVendorById = async (tenantId, id) => {
   return result.rows[0];
 };
 
+const updateLocalVendor = async (tenantId, id, data) => {
+  if (data.email && !validator.isEmail(data.email)) {
+    const err = new Error('Invalid email address');
+    err.status = 400;
+    throw err;
+  }
+
+  // COALESCE keeps existing values for any field the caller omits, rather
+  // than nulling them out.
+  const result = await db.query(
+    `UPDATE vendors SET
+      first_name          = COALESCE($1, first_name),
+      last_name           = COALESCE($2, last_name),
+      company_name        = COALESCE($3, company_name),
+      display_name        = COALESCE($4, display_name),
+      email               = COALESCE($5, email),
+      phone               = COALESCE($6, phone),
+      mobile              = COALESCE($7, mobile),
+      website             = COALESCE($8, website),
+      billing_street      = COALESCE($9, billing_street),
+      billing_city        = COALESCE($10, billing_city),
+      billing_state       = COALESCE($11, billing_state),
+      billing_postal_code = COALESCE($12, billing_postal_code),
+      billing_country     = COALESCE($13, billing_country),
+      tax_number          = COALESCE($14, tax_number),
+      tax_id              = COALESCE($15, tax_id),
+      currency            = COALESCE($16, currency),
+      is_taxable          = COALESCE($17, is_taxable),
+      status              = COALESCE($18, status),
+      source              = COALESCE($19, source),
+      notes               = COALESCE($20, notes),
+      tags                = COALESCE($21, tags),
+      updated_at          = now()
+    WHERE company_id = $22 AND vendor_code = $23
+    RETURNING *`,
+    [
+      data.firstName ?? null, data.lastName ?? null, data.companyName ?? null, data.displayName ?? null,
+      data.email ?? null, data.phone ?? null, data.mobile ?? null, data.website ?? null,
+      data.billingStreet ?? null, data.billingCity ?? null, data.billingState ?? null,
+      data.billingPostalCode ?? null, data.billingCountry ?? null,
+      data.taxNumber ?? null, data.taxid ?? null, data.currency ?? null, data.IsTaxable ?? null,
+      data.status ?? null, data.source ?? null, data.notes ?? null, data.tags ?? null,
+      tenantId, id,
+    ]
+  );
+
+  return result.rows[0];
+};
+
 module.exports = {
   getAllLocalVendors,
   createLocalVendor,
   searchLocalVendors,
   getVendorById,
+  updateLocalVendor,
 };
