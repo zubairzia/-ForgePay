@@ -1,33 +1,31 @@
 const db = require('../../db');
 
 // Local Postgres-backed document service — the ONE implementation behind
-// six document types (quote, sales_order, invoice, purchase_order, bill,
-// credit_note), per the unified document pattern (documents header +
-// document_lines) instead of a separate near-duplicate table/service per
-// type. Thin per-type controllers (invoices.controller.js etc.) each call
-// this with their document_type hardcoded.
+// three document types (invoice, bill, credit_note), per the unified
+// document pattern (documents header + document_lines) instead of a
+// separate near-duplicate table/service per type. Thin per-type
+// controllers (invoices.controller.js etc.) each call this with their
+// document_type hardcoded.
+//
+// Quote, sales_order, and purchase_order were removed when ForgePay's
+// product direction narrowed to an installment lending platform with
+// invoicing underneath it, rather than a general CRM/ERP — see
+// notes/migration_remove_so_quotes_po.sql.
 
-const DOCUMENT_TYPES = ['quote', 'sales_order', 'invoice', 'purchase_order', 'bill', 'credit_note'];
+const DOCUMENT_TYPES = ['invoice', 'bill', 'credit_note'];
 const STATUSES = ['draft', 'sent', 'confirmed', 'paid', 'partially_paid', 'overdue', 'cancelled'];
 
-// Direction is fixed by type for five of the six — a quote/sales_order/
-// invoice is always a sales document, a purchase_order/bill always a
-// purchase document. credit_note is the one type that can go either way
-// (a sales credit against a customer invoice, or a purchase-side credit
-// against a bill), so its caller must supply data.direction explicitly.
+// Direction is fixed by type for invoice/bill. credit_note is the one type
+// that can go either way (a sales credit against a customer invoice, or a
+// purchase-side credit against a bill), so its caller must supply
+// data.direction explicitly.
 const FIXED_DIRECTION_BY_TYPE = {
-  quote: 'sales',
-  sales_order: 'sales',
   invoice: 'sales',
-  purchase_order: 'purchase',
   bill: 'purchase',
 };
 
 const NUMBER_PREFIX_BY_TYPE = {
-  quote: 'QUO',
-  sales_order: 'SO',
   invoice: 'INV',
-  purchase_order: 'PO',
   bill: 'BILL',
   credit_note: 'CN',
 };
@@ -93,50 +91,23 @@ const fetchLines = async (client, documentId) => {
   return result.rows;
 };
 
-// CREATE document (header + lines) — the important transaction.
-const createDocument = async (tenantId, documentType, data) => {
-  if (!DOCUMENT_TYPES.includes(documentType)) {
-    const err = new Error(`Invalid document type: ${documentType}`);
-    err.status = 400;
-    throw err;
-  }
-
-  const direction = FIXED_DIRECTION_BY_TYPE[documentType] || data.direction;
-  if (!['sales', 'purchase'].includes(direction)) {
-    const err = new Error("direction must be 'sales' or 'purchase' (required for credit_note)");
-    err.status = 400;
-    throw err;
-  }
-
-  // Matches the DB's chk_documents_party CHECK constraint — validated here
-  // too so the caller gets a clear 400 instead of a raw constraint-
-  // violation error from Postgres.
-  if (direction === 'sales' && !data.customerId) {
-    const err = new Error('customerId is required for sales documents');
-    err.status = 400;
-    throw err;
-  }
-  if (direction === 'purchase' && !data.vendorId) {
-    const err = new Error('vendorId is required for purchase documents');
-    err.status = 400;
-    throw err;
-  }
-
-  const rawLines = Array.isArray(data.lines) ? data.lines : [];
+// Shared by createDocument and updateDocumentLines: validates a raw lines
+// array and computes each line's total/tax. The server computes every
+// monetary total from the submitted quantity/unitPrice/etc — never trusts
+// a client-supplied line_total/subtotal/tax_total/total, since this is the
+// financial system of record.
+const buildLines = (rawLines) => {
   if (rawLines.length === 0) {
     const err = new Error('At least one line item is required');
     err.status = 400;
     throw err;
   }
 
-  // The server computes every monetary total from the submitted lines —
-  // never trusts a client-supplied line_total/subtotal/tax_total/total,
-  // since this is the financial system of record.
-  const lines = rawLines.map((line, index) => {
+  return rawLines.map((line, index) => {
     const quantity = Number(line.quantity);
     const unitPrice = Number(line.unitPrice);
-    const discountPercent = line.discountPercent !== undefined ? Number(line.discountPercent) : 0;
-    const taxRate = line.taxRate !== undefined ? Number(line.taxRate) : 0;
+    const discountPercent = line.discountPercent !== undefined && line.discountPercent !== '' ? Number(line.discountPercent) : 0;
+    const taxRate = line.taxRate !== undefined && line.taxRate !== '' ? Number(line.taxRate) : 0;
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
       const err = new Error(`Line ${index + 1}: quantity must be a positive number`);
@@ -174,6 +145,39 @@ const createDocument = async (tenantId, documentType, data) => {
       sortOrder: line.sortOrder !== undefined ? line.sortOrder : index,
     };
   });
+};
+
+// CREATE document (header + lines) — the important transaction.
+const createDocument = async (tenantId, documentType, data) => {
+  if (!DOCUMENT_TYPES.includes(documentType)) {
+    const err = new Error(`Invalid document type: ${documentType}`);
+    err.status = 400;
+    throw err;
+  }
+
+  const direction = FIXED_DIRECTION_BY_TYPE[documentType] || data.direction;
+  if (!['sales', 'purchase'].includes(direction)) {
+    const err = new Error("direction must be 'sales' or 'purchase' (required for credit_note)");
+    err.status = 400;
+    throw err;
+  }
+
+  // Matches the DB's chk_documents_party CHECK constraint — validated here
+  // too so the caller gets a clear 400 instead of a raw constraint-
+  // violation error from Postgres.
+  if (direction === 'sales' && !data.customerId) {
+    const err = new Error('customerId is required for sales documents');
+    err.status = 400;
+    throw err;
+  }
+  if (direction === 'purchase' && !data.vendorId) {
+    const err = new Error('vendorId is required for purchase documents');
+    err.status = 400;
+    throw err;
+  }
+
+  const rawLines = Array.isArray(data.lines) ? data.lines : [];
+  const lines = buildLines(rawLines);
 
   const subtotal = round2(lines.reduce((sum, l) => sum + l.lineTotal, 0));
   const taxTotal = round2(lines.reduce((sum, l) => sum + l.lineTax, 0));
@@ -233,7 +237,7 @@ const createDocument = async (tenantId, documentType, data) => {
 };
 
 // GET all, filtered by type — this one function is "list invoices" and
-// "list quotes" alike, just called with a different documentType.
+// "list bills" alike, just called with a different documentType.
 const getAllDocuments = async (tenantId, documentType) => {
   const result = await db.query(
     'SELECT * FROM documents WHERE company_id = $1 AND document_type = $2 ORDER BY created_at DESC',
@@ -284,6 +288,69 @@ const updateDocument = async (tenantId, id, data) => {
   );
 
   return result.rows[0];
+};
+
+// Replaces a draft document's line items and recomputes header totals, all
+// in one transaction. Deliberately restricted to 'draft' documents — once
+// a document has been sent/confirmed, the numbers on it are what the
+// customer/vendor has already seen, so editing them silently would be a
+// real correctness problem, not just a UI inconvenience.
+const updateDocumentLines = async (tenantId, id, rawLines) => {
+  const lines = buildLines(Array.isArray(rawLines) ? rawLines : []);
+
+  const subtotal = round2(lines.reduce((sum, l) => sum + l.lineTotal, 0));
+  const taxTotal = round2(lines.reduce((sum, l) => sum + l.lineTax, 0));
+  const total = round2(subtotal + taxTotal);
+
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    const current = await client.query(
+      'SELECT status FROM documents WHERE company_id = $1 AND id = $2 FOR UPDATE',
+      [tenantId, id]
+    );
+    if (current.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return undefined;
+    }
+    if (current.rows[0].status !== 'draft') {
+      const err = new Error('Line items can only be edited while a document is in draft status');
+      err.status = 409;
+      throw err;
+    }
+
+    await client.query('DELETE FROM document_lines WHERE company_id = $1 AND document_id = $2', [tenantId, id]);
+
+    for (const line of lines) {
+      await client.query(
+        `INSERT INTO document_lines (
+          company_id, document_id, item_id, description, quantity, unit_price,
+          discount_percent, tax_rate, line_total, sort_order
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          tenantId, id, line.itemId, line.description, line.quantity,
+          line.unitPrice, line.discountPercent, line.taxRate, line.lineTotal, line.sortOrder,
+        ]
+      );
+    }
+
+    const docResult = await client.query(
+      `UPDATE documents SET subtotal = $1, tax_total = $2, total = $3, updated_at = now()
+       WHERE company_id = $4 AND id = $5 RETURNING *`,
+      [subtotal, taxTotal, total, tenantId, id]
+    );
+
+    const updatedLines = await fetchLines(client, id);
+
+    await client.query('COMMIT');
+    return { ...docResult.rows[0], lines: updatedLines };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 // Status transitions are business logic (draft -> sent -> confirmed ->
@@ -342,5 +409,6 @@ module.exports = {
   getAllDocuments,
   getDocumentById,
   updateDocument,
+  updateDocumentLines,
   updateDocumentStatus,
 };
