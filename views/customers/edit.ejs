@@ -120,7 +120,9 @@
 
           <div class="flex flex-col">
             <label for="billingCountry" class="mb-1 font-medium text-gray-700">Country</label>
-            <input type="text" id="billingCountry" name="billingCountry" value="<%= customer.billing_country || '' %>" class="border p-2 rounded w-full">
+            <select id="billingCountry" name="billingCountry" class="border p-2 rounded w-full" required>
+              <%- include('../partials/country-options', { selected: customer.billing_country }) %>
+            </select>
           </div>
         </div>
       </div>
@@ -151,7 +153,9 @@
 
           <div class="flex flex-col">
             <label for="shippingCountry" class="mb-1 font-medium text-gray-700">Country</label>
-            <input type="text" id="shippingCountry" name="shippingCountry" value="<%= customer.shipping_country || '' %>" class="border p-2 rounded w-full">
+            <select id="shippingCountry" name="shippingCountry" class="border p-2 rounded w-full">
+              <%- include('../partials/country-options', { selected: customer.shipping_country }) %>
+            </select>
           </div>
         </div>
       </div>
@@ -218,13 +222,15 @@
         <div class="grid grid-cols-2 gap-4">
 
           <div class="flex flex-col">
-            <label for="vatRegistrationNumber" class="mb-1 font-medium text-gray-700">VAT Registration Number</label>
+            <label for="vatRegistrationNumber" class="mb-1 font-medium text-gray-700">VAT Registration Number <span id="vatRequiredMark" class="text-red-500 hidden">*</span></label>
             <input type="text" id="vatRegistrationNumber" name="vatRegistrationNumber" value="<%= customer.vat_registration_number || '' %>" class="border p-2 rounded w-full">
+            <span class="text-xs text-gray-400 mt-1">Required for business customers</span>
           </div>
 
           <div class="flex flex-col">
-            <label for="crNumber" class="mb-1 font-medium text-gray-700">CR Number</label>
+            <label for="crNumber" class="mb-1 font-medium text-gray-700">CR Number <span id="crRequiredMark" class="text-red-500 hidden">*</span></label>
             <input type="text" id="crNumber" name="crNumber" value="<%= customer.cr_number || '' %>" class="border p-2 rounded w-full">
+            <span class="text-xs text-gray-400 mt-1">Required for business customers</span>
           </div>
 
           <div class="flex flex-col">
@@ -234,7 +240,9 @@
 
           <div class="flex flex-col">
             <label for="currency" class="mb-1 font-medium text-gray-700">Currency</label>
-            <input type="text" id="currency" name="currency" value="<%= customer.currency || '' %>" class="border p-2 rounded w-full">
+            <select id="currency" name="currency" class="border p-2 rounded w-full" required>
+              <%- include('../partials/currency-options', { selected: customer.currency }) %>
+            </select>
           </div>
 
           <div class="flex flex-col">
@@ -311,9 +319,10 @@
 
           <div class="flex flex-col">
             <label for="customerType" class="mb-1 font-medium text-gray-700">Customer Type</label>
+            <% const _customerTypeLower = (customer.customer_type || '').toLowerCase(); %>
             <select id="customerType" name="customerType" class="border p-2 rounded w-full">
-              <option value="Business" <%= customer.customer_type === 'Business' ? 'selected' : '' %>>Business</option>
-              <option value="Individual" <%= customer.customer_type === 'Individual' ? 'selected' : '' %>>Individual</option>
+              <option value="individual" <%= _customerTypeLower === 'individual' ? 'selected' : '' %>>Individual</option>
+              <option value="business" <%= _customerTypeLower === 'business' ? 'selected' : '' %>>Business</option>
             </select>
           </div>
 
@@ -348,5 +357,7 @@
   </div>
 
 </main>
+
+<script src="/js/customer-form.js"></script>
 
 <%- include('../partials/footer') %>

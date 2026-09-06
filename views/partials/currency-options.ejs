@@ -1,0 +1,15 @@
+<%
+/* Renders <option> tags for the shared ISO 4217 currency list (app.locals.currencies).
+   Pass `selected` (a currency code) to pre-select a value; defaults to 'SAR'.
+   Same reasoning as country-options.ejs: surface an unrecognized legacy
+   value as its own flagged option rather than silently falling through to
+   the first option in the list. */
+const _selectedCurrency = (typeof selected !== 'undefined' && selected) ? selected : 'SAR';
+const _currencyMatches = currencies.some(function (currency) { return currency.code === _selectedCurrency; });
+%>
+<% if (!_currencyMatches) { %>
+  <option value="<%= _selectedCurrency %>" selected><%= _selectedCurrency %> (unrecognized -- please select a real currency)</option>
+<% } %>
+<% currencies.forEach(function (currency) { %>
+  <option value="<%= currency.code %>" <%= currency.code === _selectedCurrency ? 'selected' : '' %>><%= currency.code %> &mdash; <%= currency.name %></option>
+<% }); %>

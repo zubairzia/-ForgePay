@@ -13,6 +13,13 @@ app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Shared reference data available to every template (country/currency/
+// customer-type dropdowns) — set once here rather than passed by every
+// route handler, since Vendors and Companies forms will need them too.
+app.locals.countries = require('./constants/countries');
+app.locals.currencies = require('./constants/currencies');
+app.locals.customerTypes = require('./constants/customerTypes');
+
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 

@@ -1,5 +1,127 @@
 const db = require('../../db');
 const validator = require('validator');
+const COUNTRIES = require('../../constants/countries');
+const CURRENCIES = require('../../constants/currencies');
+const CUSTOMER_TYPES = require('../../constants/customerTypes');
+
+// Normalizes + validates an ISO 3166-1 alpha-2 country code against the
+// shared list (the dropdown only ever sends one of these, but the API can
+// be hit directly, so this is the actual enforcement). Blank/undefined
+// passes through untouched — mandatory-field checks handle those.
+const normalizeCountryCode = (code, label) => {
+  if (code === undefined || code === null || code === '') return code;
+  const upper = String(code).trim().toUpperCase();
+  if (!COUNTRIES.some((c) => c.code === upper)) {
+    const err = new Error(`${label} must be a valid ISO 3166-1 country code`);
+    err.status = 400;
+    throw err;
+  }
+  return upper;
+};
+
+const normalizeCurrencyCode = (code) => {
+  if (code === undefined || code === null || code === '') return code;
+  const upper = String(code).trim().toUpperCase();
+  if (!CURRENCIES.some((c) => c.code === upper)) {
+    const err = new Error('currency must be a valid ISO 4217 currency code');
+    err.status = 400;
+    throw err;
+  }
+  return upper;
+};
+
+const normalizeCustomerType = (type) => {
+  if (type === undefined || type === null || type === '') return type;
+  const lower = String(type).trim().toLowerCase();
+  if (!CUSTOMER_TYPES.includes(lower)) {
+    const err = new Error(`customerType must be one of: ${CUSTOMER_TYPES.join(', ')}`);
+    err.status = 400;
+    throw err;
+  }
+  return lower;
+};
+
+// Identity fields that must be unique per tenant. Mirrors
+// notes/migration_customer_identity_uniqueness.sql's partial unique
+// indexes (uq_customers_company_email/_cr_number/_vat_number/_national_id)
+// — each maps a Postgres constraint/index name to the column it backs and
+// a human label, so a raw 23505 unique_violation can be translated into
+// the same clean, field-specific message the app-level pre-check throws.
+const IDENTITY_UNIQUE_FIELDS = [
+  { column: 'email', dataKey: 'email', label: 'email address', indexName: 'uq_customers_company_email' },
+  { column: 'cr_number', dataKey: 'crNumber', label: 'CR number', indexName: 'uq_customers_company_cr_number' },
+  { column: 'vat_registration_number', dataKey: 'vatRegistrationNumber', label: 'VAT registration number', indexName: 'uq_customers_company_vat_number' },
+  { column: 'national_id', dataKey: 'nationalId', label: 'national ID', indexName: 'uq_customers_company_national_id' },
+];
+
+// App-level pre-check for all four unique-per-tenant identity fields, run
+// inside the caller's transaction so the check and the write stay atomic.
+// Skips any field that's blank (customers.*_not_null / the partial unique
+// indexes both already treat blank/null as "no value, no collision").
+// excludeCustomerId lets updateLocalCustomer check without tripping over
+// the row being edited.
+const checkDuplicateIdentityFields = async (client, tenantId, values, excludeCustomerId) => {
+  for (const { column, dataKey, label } of IDENTITY_UNIQUE_FIELDS) {
+    const value = values[dataKey];
+    if (value === undefined || value === null || value === '') continue;
+
+    const params = [tenantId, value];
+    let query = `SELECT id FROM customers WHERE company_id = $1 AND ${column} = $2`;
+    if (excludeCustomerId !== undefined) {
+      params.push(excludeCustomerId);
+      query += ' AND id <> $3';
+    }
+
+    const duplicate = await client.query(query, params);
+    if (duplicate.rows.length > 0) {
+      const err = new Error(`A customer with this ${label} already exists`);
+      err.status = 409;
+      throw err;
+    }
+  }
+};
+
+// Backstop for the race window between the pre-check above and the actual
+// INSERT/UPDATE (two concurrent requests both passing the check before
+// either commits) — translates a raw Postgres unique_violation into the
+// same clean, field-specific message rather than letting the constraint
+// error reach the user.
+const translateUniqueViolation = (err) => {
+  if (err.code === '23505' && err.constraint) {
+    const field = IDENTITY_UNIQUE_FIELDS.find((f) => f.indexName === err.constraint);
+    if (field) {
+      const friendly = new Error(`A customer with this ${field.label} already exists`);
+      friendly.status = 409;
+      return friendly;
+    }
+  }
+  return err;
+};
+
+// Validates the fully-resolved (post-merge, for updates) field set: the
+// four unconditionally-mandatory fields, plus vat_registration_number/
+// cr_number which are only mandatory when the resolved customer_type is
+// 'business' — individuals borrowing on installments have a national ID,
+// not a commercial registration or VAT number.
+const validateMandatoryFields = (resolved) => {
+  const requireNonBlank = (value, label) => {
+    if (!String(value ?? '').trim()) {
+      const err = new Error(`${label} is required`);
+      err.status = 400;
+      throw err;
+    }
+  };
+
+  requireNonBlank(resolved.lastName, 'lastName');
+  requireNonBlank(resolved.email, 'email');
+  requireNonBlank(resolved.billingCountry, 'billingCountry');
+  requireNonBlank(resolved.currency, 'currency');
+
+  if (resolved.customerType === 'business') {
+    requireNonBlank(resolved.vatRegistrationNumber, 'vatRegistrationNumber (required for business customers)');
+    requireNonBlank(resolved.crNumber, 'crNumber (required for business customers)');
+  }
+};
 
 // GET all — now scoped to a tenant instead of returning every tenant's rows
 const getAllLocalCustomers = async (tenantId) => {
@@ -88,23 +210,22 @@ const createLocalCustomer = async (tenantId, data) => {
 
   validateLendingFields(data);
 
+  data.billingCountry = normalizeCountryCode(data.billingCountry, 'billingCountry');
+  data.shippingCountry = normalizeCountryCode(data.shippingCountry, 'shippingCountry');
+  data.currency = normalizeCurrencyCode(data.currency);
+  data.customerType = normalizeCustomerType(data.customerType);
+  validateMandatoryFields(data);
+
   // Wrap in a transaction: the duplicate check + insert should be atomic.
-  // Better still, add a UNIQUE (company_id, email) constraint at the DB
-  // level (see notes below) and catch the 23505 error — the app-level
-  // check alone still has a race window between two concurrent requests.
+  // The partial unique indexes (see
+  // notes/migration_customer_identity_uniqueness.sql) are the backstop for
+  // the remaining race window between two concurrent requests — caught
+  // below via translateUniqueViolation.
   const client = await db.connect();
   try {
     await client.query('BEGIN');
 
-    const duplicate = await client.query(
-      'SELECT customer_code FROM customers WHERE company_id = $1 AND email = $2',
-      [tenantId, email]
-    );
-    if (duplicate.rows.length > 0) {
-      const err = new Error('Customer already exists');
-      err.status = 409;
-      throw err;
-    }
+    await checkDuplicateIdentityFields(client, tenantId, data);
 
     const result = await client.query(
       `INSERT INTO customers (
@@ -146,7 +267,7 @@ const createLocalCustomer = async (tenantId, data) => {
     return result.rows[0];
   } catch (err) {
     await client.query('ROLLBACK');
-    throw err;
+    throw translateUniqueViolation(err);
   } finally {
     client.release();
   }
@@ -192,10 +313,53 @@ const updateLocalCustomer = async (tenantId, id, data) => {
 
   validateLendingFields(data);
 
-  // COALESCE keeps existing values for any field the caller omits, rather
-  // than nulling them out — this table now carries KYC/guarantor data a
-  // partial edit must not silently wipe.
-  const result = await db.query(
+  data.billingCountry = normalizeCountryCode(data.billingCountry, 'billingCountry');
+  data.shippingCountry = normalizeCountryCode(data.shippingCountry, 'shippingCountry');
+  data.currency = normalizeCurrencyCode(data.currency);
+  data.customerType = normalizeCustomerType(data.customerType);
+
+  // Wrapped in a transaction like createLocalCustomer: the existing-row
+  // fetch, duplicate pre-check, and UPDATE must all see a consistent
+  // snapshot, and FOR UPDATE closes the race window where a concurrent
+  // edit changes `current` out from under the merge below.
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      'SELECT * FROM customers WHERE company_id = $1 AND customer_code = $2 FOR UPDATE',
+      [tenantId, id]
+    );
+    if (existing.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return undefined;
+    }
+    const current = existing.rows[0];
+
+    // Validate against the row as it will exist AFTER the update — the
+    // UPDATE below uses COALESCE(new, existing) per field, so mandatory
+    // checks must run against that same merge, not against `data` alone,
+    // or a partial edit could blank a mandatory field undetected.
+    validateMandatoryFields({
+      lastName: data.lastName !== undefined ? data.lastName : current.last_name,
+      email: data.email !== undefined ? data.email : current.email,
+      billingCountry: data.billingCountry !== undefined ? data.billingCountry : current.billing_country,
+      currency: data.currency !== undefined ? data.currency : current.currency,
+      customerType: data.customerType !== undefined ? data.customerType : (current.customer_type || '').toLowerCase(),
+      vatRegistrationNumber: data.vatRegistrationNumber !== undefined ? data.vatRegistrationNumber : current.vat_registration_number,
+      crNumber: data.crNumber !== undefined ? data.crNumber : current.cr_number,
+    });
+
+    // Same identity-uniqueness rules as create, excluding this row itself
+    // — without this, editing a customer's email/CR/VAT/national ID to
+    // match another existing customer would only be caught by the raw DB
+    // constraint (an unhandled 23505), not a clean error.
+    await checkDuplicateIdentityFields(client, tenantId, data, current.id);
+
+    // COALESCE keeps existing values for any field the caller omits, rather
+    // than nulling them out — this table now carries KYC/guarantor data a
+    // partial edit must not silently wipe.
+    const result = await client.query(
     `UPDATE customers SET
       first_name                = COALESCE($1, first_name),
       last_name                 = COALESCE($2, last_name),
@@ -263,9 +427,16 @@ const updateLocalCustomer = async (tenantId, id, data) => {
       data.assignedAgentId ?? null, data.customerSince ?? null, normalizeMetadata(data.metadata),
       tenantId, id,
     ]
-  );
+    );
 
-  return result.rows[0];
+    await client.query('COMMIT');
+    return result.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw translateUniqueViolation(err);
+  } finally {
+    client.release();
+  }
 };
 
 module.exports = {

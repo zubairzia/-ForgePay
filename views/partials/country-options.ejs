@@ -1,0 +1,17 @@
+<%
+/* Renders <option> tags for the shared ISO 3166-1 country list (app.locals.countries).
+   Pass `selected` (an alpha-2 code) to pre-select a value; defaults to 'SA'.
+   Older rows predate this dropdown and can carry free text (e.g. "Pakistan",
+   "USA") that matches no ISO code -- surface that raw value as its own
+   flagged option instead of silently falling through to the browser's
+   default (the first option in the list), which would misrepresent data
+   that was never actually Afghanistan. */
+const _selectedCountry = (typeof selected !== 'undefined' && selected) ? selected : 'SA';
+const _countryMatches = countries.some(function (country) { return country.code === _selectedCountry; });
+%>
+<% if (!_countryMatches) { %>
+  <option value="<%= _selectedCountry %>" selected><%= _selectedCountry %> (unrecognized -- please select a real country)</option>
+<% } %>
+<% countries.forEach(function (country) { %>
+  <option value="<%= country.code %>" <%= country.code === _selectedCountry ? 'selected' : '' %>><%= country.name %></option>
+<% }); %>
