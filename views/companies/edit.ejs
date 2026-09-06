@@ -65,6 +65,55 @@
         </div>
       </div>
 
+      <div>
+        <h2 class="text-lg font-semibold mb-4">Grace Period &amp; Late Fees</h2>
+        <p class="text-sm text-gray-500 mb-4">
+          Controls the nightly job that marks installments overdue and applies late fees.
+        </p>
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="flex flex-col">
+            <label for="gracePeriodDays" class="mb-1 font-medium text-gray-700">Grace Period (days)</label>
+            <input type="number" min="0" step="1" id="gracePeriodDays" name="gracePeriodDays"
+                   value="<%= company.grace_period_days ?? 0 %>" class="border p-2 rounded w-full">
+            <span class="text-xs text-gray-400 mt-1">Days past the due date before an installment counts as overdue.</span>
+          </div>
+
+          <div></div>
+
+          <div class="flex flex-col">
+            <label for="lateFeeType" class="mb-1 font-medium text-gray-700">Late Fee Type</label>
+            <select id="lateFeeType" name="lateFeeType" class="border p-2 rounded w-full">
+              <option value="none" <%= company.late_fee_type === 'none' ? 'selected' : '' %>>None</option>
+              <option value="fixed" <%= company.late_fee_type === 'fixed' ? 'selected' : '' %>>Fixed amount</option>
+              <option value="percentage" <%= company.late_fee_type === 'percentage' ? 'selected' : '' %>>Percentage of amount owed</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col late-fee-field">
+            <label for="lateFeeAmount" class="mb-1 font-medium text-gray-700">Late Fee Amount</label>
+            <input type="number" min="0" step="0.01" id="lateFeeAmount" name="lateFeeAmount"
+                   value="<%= company.late_fee_amount ?? 0 %>" class="border p-2 rounded w-full">
+            <span id="lateFeeAmountHint" class="text-xs text-gray-400 mt-1">
+              A flat currency amount, or a percentage point (5 = 5%), depending on the type above.
+            </span>
+          </div>
+
+          <div class="flex flex-col late-fee-field">
+            <label for="lateFeeApplies" class="mb-1 font-medium text-gray-700">Applies</label>
+            <select id="lateFeeApplies" name="lateFeeApplies" class="border p-2 rounded w-full">
+              <option value="once" <%= company.late_fee_applies === 'once' ? 'selected' : '' %>>Once (charged one time)</option>
+              <option value="daily" <%= company.late_fee_applies === 'daily' ? 'selected' : '' %>>Daily (charged again every day overdue)</option>
+              <option value="per_period" <%= company.late_fee_applies === 'per_period' ? 'selected' : '' %>>Per period (charged again on the account's own installment cadence)</option>
+            </select>
+            <span class="text-xs text-amber-600 mt-1">
+              Percentage + Daily compounds fast on a large overdue balance — review carefully before enabling that combination.
+            </span>
+          </div>
+
+        </div>
+      </div>
+
       <div class="flex justify-between items-center">
         <a href="/companies" class="text-gray-600 hover:text-gray-900">← Back to Companies</a>
         <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition">
@@ -77,5 +126,19 @@
   </div>
 
 </main>
+
+<script>
+  // Hide the amount/cadence fields entirely when no late fee is configured
+  // -- matches the pattern in public/js/customer-form.js for
+  // conditionally-relevant fields.
+  const lateFeeType = document.getElementById('lateFeeType');
+  const lateFeeFields = document.querySelectorAll('.late-fee-field');
+  const syncLateFeeFields = () => {
+    const show = lateFeeType.value !== 'none';
+    lateFeeFields.forEach((el) => { el.style.display = show ? '' : 'none'; });
+  };
+  lateFeeType.addEventListener('change', syncLateFeeFields);
+  syncLateFeeFields();
+</script>
 
 <%- include('../partials/footer') %>
