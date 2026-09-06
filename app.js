@@ -62,4 +62,11 @@ app.use((req, res, next) => {
 const routes = require('./routes');
 app.use(routes);
 
+// Error handler -- must be mounted last (after every route), and takes 4
+// args so Express recognizes it as an error handler rather than regular
+// middleware. Every controller in this app calls next(error) expecting a
+// JSON response; without this mounted, Express falls back to its own
+// default HTML error page instead.
+app.use(require('./middleware/error.middleware'));
+
 module.exports = app;
