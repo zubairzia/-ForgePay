@@ -17,7 +17,7 @@ const getCreditAccounts = async (req, res, next) => {
 // CREATE credit account
 const createCreditAccount = async (req, res, next) => {
   try {
-    const account = await localService.createCreditAccount(req.tenantId, req.body);
+    const account = await localService.createCreditAccount(req.tenantId, { ...req.body, createdBy: req.user.id });
     res.status(201).json(account);
   } catch (error) {
     next(error);
@@ -65,7 +65,7 @@ const getCreditAccountEvents = async (req, res, next) => {
 // UPDATE credit account status
 const updateCreditAccountStatus = async (req, res, next) => {
   try {
-    const account = await localService.updateCreditAccountStatus(req.tenantId, req.params.id, req.body.status);
+    const account = await localService.updateCreditAccountStatus(req.tenantId, req.params.id, req.body.status, req.user.id);
     if (!account) {
       return res.status(404).json({ message: 'Credit account not found' });
     }

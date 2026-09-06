@@ -22,7 +22,7 @@ const getCreditNotes = async (req, res, next) => {
 // CREATE credit note
 const createCreditNote = async (req, res, next) => {
   try {
-    const creditNote = await documentsService.createDocument(req.tenantId, DOCUMENT_TYPE, req.body);
+    const creditNote = await documentsService.createDocument(req.tenantId, DOCUMENT_TYPE, { ...req.body, createdBy: req.user.id });
     res.status(201).json(creditNote);
   } catch (error) {
     next(error);

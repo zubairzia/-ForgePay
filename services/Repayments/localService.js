@@ -279,14 +279,15 @@ const recordRepayment = async (tenantId, creditAccountId, data) => {
     );
 
     await client.query(
-      `INSERT INTO credit_account_events (company_id, credit_account_id, event_type, event_data)
-       VALUES ($1, $2, 'PAYMENT_POSTED', $3)`,
+      `INSERT INTO credit_account_events (company_id, credit_account_id, event_type, event_data, performed_by)
+       VALUES ($1, $2, 'PAYMENT_POSTED', $3, $4)`,
       [
         tenantId, creditAccountId,
         JSON.stringify({
           paymentId: payment.id, paymentNumber, amount, waterfallOrder,
           installments: touchedInstallments,
         }),
+        data.performedBy || null,
       ]
     );
 

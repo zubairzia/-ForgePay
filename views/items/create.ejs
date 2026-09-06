@@ -8,6 +8,7 @@
     <h1 class="text-2xl font-bold mb-8">Create New Item</h1>
 
     <form action="/items/create" method="POST" class="space-y-10">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
       <div>
         <h2 class="text-lg font-semibold mb-4">Item Details</h2>

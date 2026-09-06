@@ -18,7 +18,7 @@ const getInvoices = async (req, res, next) => {
 // CREATE invoice
 const createInvoice = async (req, res, next) => {
   try {
-    const invoice = await documentsService.createDocument(req.tenantId, DOCUMENT_TYPE, req.body);
+    const invoice = await documentsService.createDocument(req.tenantId, DOCUMENT_TYPE, { ...req.body, createdBy: req.user.id });
     res.status(201).json(invoice);
   } catch (error) {
     next(error);

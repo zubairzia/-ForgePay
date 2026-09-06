@@ -9,6 +9,7 @@
     <p class="text-sm text-gray-500 mb-8"><%= document.document_number %></p>
 
     <form action="<%= meta.basePath %>/<%= document.id %>/update" method="POST" class="space-y-10">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
       <!-- HEADER (customer/vendor/type are immutable after creation) -->
       <div>

@@ -10,6 +10,11 @@ const invoiceWebRoutes = require('./invoices.web');
 const billWebRoutes = require('./bills.web');
 const creditNoteWebRoutes = require('./creditnotes.web');
 const moduleWebRoutes = require('./modules.web');
+const companiesWebRoutes = require('./companies.web');
+const settingsWebRoutes = require('./settings.web');
+
+const { requireRole } = require('../../middleware/auth.middleware');
+const { ALL_ROLES } = require('../../middleware/roleGroups');
 
 router.use('/', customerWebRoutes);
 router.use('/', creditAccountWebRoutes);
@@ -20,8 +25,12 @@ router.use('/', invoiceWebRoutes);
 router.use('/', billWebRoutes);
 router.use('/', creditNoteWebRoutes);
 router.use('/', moduleWebRoutes);
+router.use('/', companiesWebRoutes);
+router.use('/', settingsWebRoutes);
 
-router.get('/', (req, res) => {
+// Read-only aggregate every role has some view access to (see
+// middleware/roleGroups.js).
+router.get('/', requireRole(...ALL_ROLES), (req, res) => {
   res.render('dashboard/index');
 });
 

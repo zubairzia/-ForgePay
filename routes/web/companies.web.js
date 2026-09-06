@@ -2,23 +2,18 @@ const express = require('express');
 const router = express.Router();
 
 const companiesController = require('../../controllers/companies.controller');
+const { requireRole } = require('../../middleware/auth.middleware');
 
-// Company (tenant) pages. Deliberately has NO tenantId/tenant middleware
-// anywhere in this file — a company IS a tenant, so there's no tenant
-// context to require here. This mirrors routes/api/v1/companies.routes.js,
-// and this whole file is mounted outside webTenantMiddleware in
-// routes/index.js for the same reason.
-
+// Company creation only happens through /register now. This whole module
+// is folded into the normal requireAuth-protected web router (see
+// routes/web/index.js) instead of being mounted ahead of it — a company
+// already exists by the time anyone can reach these pages.
 router.get('/companies', companiesController.listCompaniesPage);
 
-router.get('/companies/create', companiesController.createCompanyPage);
+router.get('/companies/:id/view', requireRole('owner', 'finance_manager', 'read_only'), companiesController.viewCompany);
 
-router.post('/companies/create', companiesController.submitCompanyCreate);
+router.get('/companies/:id/edit', requireRole('owner', 'finance_manager'), companiesController.editCompany);
 
-router.get('/companies/:id/view', companiesController.viewCompany);
-
-router.get('/companies/:id/edit', companiesController.editCompany);
-
-router.post('/companies/:id/update', companiesController.submitCompanyUpdate);
+router.post('/companies/:id/update', requireRole('owner', 'finance_manager'), companiesController.submitCompanyUpdate);
 
 module.exports = router;

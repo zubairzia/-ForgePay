@@ -2,25 +2,24 @@ const express = require('express');
 const router = express.Router();
 
 const vendorsController = require('../../controllers/vendors.controller');
+const { requireRole } = require('../../middleware/auth.middleware');
+const { VIEW_BACK_OFFICE, MANAGE_BACK_OFFICE } = require('../../middleware/roleGroups');
 
 // Vendor Pages
-router.get('/vendors', (req, res) => {
+router.get('/vendors', requireRole(...VIEW_BACK_OFFICE), (req, res) => {
   res.render('vendors/index');
 });
 
-router.get('/vendors/create', (req, res) => {
+router.get('/vendors/create', requireRole(...MANAGE_BACK_OFFICE), (req, res) => {
   res.render('vendors/create');
 });
 
-// Create form posts here directly (web layer, not the API layer) so it can
-// rely on webTenantMiddleware's hardcoded tenantId instead of needing a
-// custom X-Tenant-Id header, which a plain HTML <form> can't send.
-router.post('/vendors/create', vendorsController.createVendor);
+router.post('/vendors/create', requireRole(...MANAGE_BACK_OFFICE), vendorsController.createVendor);
 
-router.get('/vendors/:vendor_code/view', vendorsController.viewVendor);
+router.get('/vendors/:vendor_code/view', requireRole(...VIEW_BACK_OFFICE), vendorsController.viewVendor);
 
-router.get('/vendors/:vendor_code/edit', vendorsController.editVendor);
+router.get('/vendors/:vendor_code/edit', requireRole(...MANAGE_BACK_OFFICE), vendorsController.editVendor);
 
-router.post('/vendors/:vendor_code/update', vendorsController.submitVendorUpdate);
+router.post('/vendors/:vendor_code/update', requireRole(...MANAGE_BACK_OFFICE), vendorsController.submitVendorUpdate);
 
 module.exports = router;

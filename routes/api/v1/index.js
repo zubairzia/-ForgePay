@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+router.use('/companies', require('./companies.routes'));
 router.use('/customers', require('./customers.routes'));
 router.use('/vendors', require('./vendors.routes'));
 router.use('/items', require('./items.routes'));

@@ -18,7 +18,7 @@ const getBills = async (req, res, next) => {
 // CREATE bill
 const createBill = async (req, res, next) => {
   try {
-    const bill = await documentsService.createDocument(req.tenantId, DOCUMENT_TYPE, req.body);
+    const bill = await documentsService.createDocument(req.tenantId, DOCUMENT_TYPE, { ...req.body, createdBy: req.user.id });
     res.status(201).json(bill);
   } catch (error) {
     next(error);

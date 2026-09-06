@@ -8,6 +8,7 @@
     <h1 class="text-2xl font-bold mb-8">Create New Customer</h1>
 
     <form action="/customers/create" method="POST" class="space-y-10">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
       <!-- BASIC INFORMATION -->
       <div>

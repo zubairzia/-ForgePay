@@ -16,7 +16,7 @@ const getRepayments = async (req, res, next) => {
 // RECORD a repayment against a credit account
 const createRepayment = async (req, res, next) => {
   try {
-    const result = await localService.recordRepayment(req.tenantId, req.params.id, req.body);
+    const result = await localService.recordRepayment(req.tenantId, req.params.id, { ...req.body, performedBy: req.user.id });
     if (!result) {
       return res.status(404).json({ message: 'Credit account not found' });
     }

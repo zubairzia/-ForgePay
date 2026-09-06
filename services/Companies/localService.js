@@ -9,7 +9,15 @@ const validator = require('validator');
 
 // CREATE company — this is how a new tenant comes into existence, so
 // there's no tenantId to scope by yet.
-const createCompany = async (data) => {
+//
+// Accepts an optional `client` (a checked-out connection from db.connect())
+// so services/Auth/localService.js's registerCompanyAndOwner can run this
+// INSERT inside its own BEGIN/COMMIT alongside the owner-user INSERT —
+// company creation is no longer reachable on its own (see
+// controllers/companies.controller.js), only as part of registration, and
+// that whole flow must succeed or fail atomically. Defaults to the pool
+// (`db`) for any caller that doesn't need transactional participation.
+const createCompany = async (data, client = db) => {
   const name = (data.name || '').trim();
   if (!validator.isLength(name, { min: 1 })) {
     const err = new Error('Company name is required');
@@ -29,9 +37,7 @@ const createCompany = async (data) => {
     throw err;
   }
 
-  // Single INSERT — no transaction needed, unlike createLocalCustomer/
-  // createLocalVendor which wrap a duplicate check + insert together.
-  const result = await db.query(
+  const result = await client.query(
     `INSERT INTO companies (
       name, legal_name, industry, country, currency, timezone,
       subscription_plan, status
@@ -108,18 +114,8 @@ const updateCompany = async (id, data) => {
   return result.rows[0];
 };
 
-// GET all — unrestricted for now. Once real auth/roles exist, this needs
-// to become admin-only (e.g. a platform-admin role check in the
-// controller/middleware): a regular tenant user should never be able to
-// list every company in the system, only their own.
-const getAllCompanies = async () => {
-  const result = await db.query('SELECT * FROM companies ORDER BY created_at DESC');
-  return result.rows;
-};
-
 module.exports = {
   createCompany,
   getCompanyById,
   updateCompany,
-  getAllCompanies,
 };

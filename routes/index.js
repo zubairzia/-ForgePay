@@ -1,43 +1,36 @@
 const express = require('express');
 const router = express.Router();
-const tenantMiddleware = require('../middleware/tenant.middleware');
+const { requireAuth } = require('../middleware/auth.middleware');
+const { ensureCsrfToken, verifyCsrfToken } = require('../middleware/csrf.middleware');
 
-// UI Routes (EJS pages)
-// TEMPORARY: hardcoded tenant until real login/session exists, mirroring
-// the 'X-Tenant-Id: 1' header hardcoded in public/js/customers.js. Browser
-// page navigations don't carry custom headers, so req.tenantId was left
-// undefined here, and lookups scoped by company_id never matched.
-// TODO: once auth/session exists, resolve req.tenantId here too
-// (from req.session.user.companyId) instead of hardcoding it.
-const webTenantMiddleware = (req, res, next) => {
-  req.tenantId = '1';
-  next();
-};
-
+const authWebRoutes = require('./web/auth.web');
 const webRoutes = require('./web');
-
-// API Routes — every /api/v1 request now requires a resolved tenant
-// before it reaches a controller. See middleware/tenant.middleware.js
-// for why this exists and what still needs to change once real auth
-// is added.
 const apiV1Routes = require('./api/v1');
-const companiesRoutes = require('./api/v1/companies.routes');
-const companiesWebRoutes = require('./web/companies.web');
 
-// Mount routes
+// /api/v1 is mounted FIRST and matched exactly by prefix, so a JSON API
+// request is fully handled here and never touches the web-only middleware
+// below. Mounting order matters: router.use('/', mw) prefix-matches EVERY
+// path, /api/v1/* included -- if the web block were registered first, its
+// ensureCsrfToken/verifyCsrfToken would run unconditionally ahead of this
+// one, rejecting every API POST/PUT/PATCH for a missing _csrf field no
+// JSON client ever sends. (Caught exactly this way in verification: a
+// curl POST to /api/v1/credit-accounts with a valid session came back 403
+// "Invalid or missing CSRF token" before this reordering.)
+router.use('/api/v1', requireAuth, apiV1Routes);
 
-// Companies (tenants) are the one resource that must be creatable and
-// readable BEFORE any tenant context exists — a company IS the tenant, so
-// there's no company_id to resolve yet when one is being created (e.g. a
-// signup flow calling POST /api/v1/companies, or a user visiting
-// /companies/create). Both the API and web routers for companies are
-// mounted here, ahead of their respective tenant-gated blocks below, so
-// Express matches /companies* and /api/v1/companies* first and neither
-// tenantMiddleware nor webTenantMiddleware ever runs for them.
-router.use('/', companiesWebRoutes);
-router.use('/api/v1/companies', companiesRoutes);
+// The only web pages reachable without a session: /register, /login,
+// /logout. ensureCsrfToken runs here too -- the login/register forms need
+// a token before any authenticated session exists.
+router.use('/', ensureCsrfToken, authWebRoutes);
 
-router.use('/', webTenantMiddleware, webRoutes);
-router.use('/api/v1', tenantMiddleware, apiV1Routes);
+// Everything else requires a real, session-derived tenant. There is no
+// more X-Tenant-Id header and no more hardcoded company_id — req.tenantId
+// now comes from req.session.user.companyId (see
+// middleware/auth.middleware.js's requireAuth). Companies (tenants) used
+// to be exempted here because a tenant had to be creatable before tenant
+// context existed; registration (above) replaces that entirely, so
+// Companies is now just another module inside routes/web/index.js /
+// routes/api/v1/index.js like everything else.
+router.use('/', ensureCsrfToken, requireAuth, verifyCsrfToken, webRoutes);
 
 module.exports = router;

@@ -283,8 +283,8 @@ const createCreditAccount = async (tenantId, data) => {
     }
 
     await client.query(
-      `INSERT INTO credit_account_events (company_id, credit_account_id, event_type, event_data)
-       VALUES ($1, $2, 'ACCOUNT_OPENED', $3)`,
+      `INSERT INTO credit_account_events (company_id, credit_account_id, event_type, event_data, performed_by)
+       VALUES ($1, $2, 'ACCOUNT_OPENED', $3, $4)`,
       [
         tenantId, account.id,
         JSON.stringify({
@@ -292,6 +292,7 @@ const createCreditAccount = async (tenantId, data) => {
           markupAmount: plan.markupAmount, financedAmount: plan.financedAmount, totalPayableAmount: plan.totalPayableAmount,
           installmentType: plan.installmentType, installmentCount: plan.installmentCount, installmentFrequency: plan.installmentFrequency,
         }),
+        data.createdBy || null,
       ]
     );
 
@@ -397,7 +398,7 @@ const getCreditAccountEvents = async (tenantId, id) => {
 // ALLOWED_STATUS_TRANSITIONS under FOR UPDATE, same pattern as
 // updateDocumentStatus. Every transition is logged as a
 // credit_account_events row.
-const updateCreditAccountStatus = async (tenantId, id, newStatus) => {
+const updateCreditAccountStatus = async (tenantId, id, newStatus, performedBy) => {
   if (!STATUSES.includes(newStatus)) {
     const err = new Error(`Invalid status: ${newStatus}`);
     err.status = 400;
@@ -431,9 +432,9 @@ const updateCreditAccountStatus = async (tenantId, id, newStatus) => {
     );
 
     await client.query(
-      `INSERT INTO credit_account_events (company_id, credit_account_id, event_type, event_data)
-       VALUES ($1, $2, 'STATUS_CHANGED', $3)`,
-      [tenantId, id, JSON.stringify({ from: currentStatus, to: newStatus })]
+      `INSERT INTO credit_account_events (company_id, credit_account_id, event_type, event_data, performed_by)
+       VALUES ($1, $2, 'STATUS_CHANGED', $3, $4)`,
+      [tenantId, id, JSON.stringify({ from: currentStatus, to: newStatus }), performedBy || null]
     );
 
     await client.query('COMMIT');

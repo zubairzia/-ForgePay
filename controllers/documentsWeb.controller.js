@@ -66,7 +66,7 @@ function createDocumentWebController(documentType, meta) {
   // POST create — redirect to the new document's detail page on success.
   const submitCreate = async (req, res, next) => {
     try {
-      const document = await documentsService.createDocument(req.tenantId, documentType, req.body);
+      const document = await documentsService.createDocument(req.tenantId, documentType, { ...req.body, createdBy: req.user.id });
       res.redirect(`${meta.basePath}/${document.id}/view`);
     } catch (error) {
       next(error);

@@ -2,27 +2,24 @@ const express = require('express');
 const router = express.Router();
 
 const customersController = require('../../controllers/customers.controller');
+const { requireRole } = require('../../middleware/auth.middleware');
+const { VIEW_CUSTOMERS_ACCOUNTS, MANAGE_CUSTOMERS_ACCOUNTS } = require('../../middleware/roleGroups');
 
 // Customer Pages
-router.get('/customers', (req, res) => {
+router.get('/customers', requireRole(...VIEW_CUSTOMERS_ACCOUNTS), (req, res) => {
   res.render('customers/index');
 });
 
-router.get('/customers/create', (req, res) => {
+router.get('/customers/create', requireRole(...MANAGE_CUSTOMERS_ACCOUNTS), (req, res) => {
   res.render('customers/create');
 });
 
-// Create form posts here (web layer), not to /api/v1/customers/create —
-// that endpoint sits behind tenantMiddleware, which requires an
-// X-Tenant-Id header a plain HTML <form> can't send. This route already
-// has tenantId via webTenantMiddleware, same as the working edit/update
-// route below.
-router.post('/customers/create', customersController.createCustomer);
+router.post('/customers/create', requireRole(...MANAGE_CUSTOMERS_ACCOUNTS), customersController.createCustomer);
 
-router.get('/customers/:customer_code/view', customersController.viewCustomer);
+router.get('/customers/:customer_code/view', requireRole(...VIEW_CUSTOMERS_ACCOUNTS), customersController.viewCustomer);
 
-router.get('/customers/:customer_code/edit', customersController.editCustomer);
+router.get('/customers/:customer_code/edit', requireRole(...MANAGE_CUSTOMERS_ACCOUNTS), customersController.editCustomer);
 
-router.post('/customers/:customer_code/update', customersController.updateCustomer);
+router.post('/customers/:customer_code/update', requireRole(...MANAGE_CUSTOMERS_ACCOUNTS), customersController.updateCustomer);
 
 module.exports = router;
