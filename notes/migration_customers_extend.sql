@@ -19,12 +19,25 @@ ALTER TABLE customers
 --    customers.company_id to companies, and no unique constraint on
 --    (company_id, email). Included here so this one file brings customers
 --    fully up to date without needing to also re-run the older file.
-ALTER TABLE customers
-  ADD CONSTRAINT fk_customers_company
-  FOREIGN KEY (company_id) REFERENCES companies(id);
+--    Guarded with existence checks (plain ADD CONSTRAINT has no
+--    IF NOT EXISTS in Postgres) since a fresh database that runs
+--    migration_tenant_and_constraints.sql first — the documented order in
+--    README.md — already has both, and this would otherwise fail with
+--    "constraint already exists" instead of being the harmless no-op it
+--    was on the original database this migration was written against.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_customers_company') THEN
+    ALTER TABLE customers
+      ADD CONSTRAINT fk_customers_company
+      FOREIGN KEY (company_id) REFERENCES companies(id);
+  END IF;
 
-ALTER TABLE customers
-  ADD CONSTRAINT uq_customers_company_email UNIQUE (company_id, email);
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_customers_company_email') THEN
+    ALTER TABLE customers
+      ADD CONSTRAINT uq_customers_company_email UNIQUE (company_id, email);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_customers_company_id ON customers(company_id);
 CREATE INDEX IF NOT EXISTS idx_customers_customer_code ON customers(customer_code);
