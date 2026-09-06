@@ -20,22 +20,31 @@
           <a id="recordRepaymentBtn" href="#" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm">
             Record Repayment
           </a>
-          <div class="relative group">
-            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Waive Penalty</button>
-            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
-          </div>
-          <div class="relative group">
-            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Reschedule</button>
-            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
-          </div>
-          <div class="relative group">
-            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Send Reminder</button>
-            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
-          </div>
-          <div class="relative group">
-            <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Download Statement</button>
-            <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Coming soon</div>
-          </div>
+          <% if (['owner', 'finance_manager'].includes(user.role)) { %>
+            <button id="waivePenaltyBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm">Waive Penalty</button>
+          <% } else { %>
+            <div class="relative group">
+              <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Waive Penalty</button>
+              <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Owner/Finance Manager only</div>
+            </div>
+          <% } %>
+          <% if (['owner', 'finance_manager'].includes(user.role)) { %>
+            <a id="rescheduleBtn" href="/credit-accounts/<%= id %>/reschedule" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm">Reschedule</a>
+          <% } else { %>
+            <div class="relative group">
+              <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Reschedule</button>
+              <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Owner/Finance Manager only</div>
+            </div>
+          <% } %>
+          <% if (['owner', 'finance_manager', 'cashier'].includes(user.role)) { %>
+            <button id="sendReminderBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm">Send Reminder</button>
+          <% } else { %>
+            <div class="relative group">
+              <button disabled class="bg-gray-200 text-gray-400 px-4 py-2 rounded text-sm cursor-not-allowed">Send Reminder</button>
+              <div class="absolute right-0 mt-1 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">Owner/Finance Manager/Cashier only</div>
+            </div>
+          <% } %>
+          <a href="/api/v1/credit-accounts/<%= id %>/statement" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm">Download Statement</a>
         </div>
       </div>
 
@@ -74,6 +83,7 @@
               <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Paid</th>
               <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Remaining</th>
               <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"></th>
             </tr>
           </thead>
           <tbody id="scheduleBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -96,9 +106,29 @@
     </div>
 
   </div>
+
+  <!-- WAIVE PENALTY MODAL -->
+  <div id="waivePenaltyModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+      <h3 class="text-lg font-semibold mb-4">Waive Penalty — Installment #<span id="waiveInstallmentNumber"></span></h3>
+      <div id="waiveModalError" class="hidden mb-3 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm"></div>
+      <p class="text-sm text-gray-500 mb-3">Outstanding penalty: <span id="waiveOutstandingPenalty" class="font-medium text-gray-800"></span></p>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Amount to waive</label>
+      <input id="waiveAmountInput" type="number" step="0.01" min="0.01" class="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-sm">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Reason (required)</label>
+      <textarea id="waiveReasonInput" rows="3" class="w-full border border-gray-300 rounded px-3 py-2 mb-4 text-sm" placeholder="Why is this penalty being waived?"></textarea>
+      <div class="flex justify-end gap-2">
+        <button id="waiveCancelBtn" class="px-4 py-2 rounded text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
+        <button id="waiveConfirmBtn" class="px-4 py-2 rounded text-sm bg-gray-800 text-white hover:bg-gray-900">Waive Penalty</button>
+      </div>
+    </div>
+  </div>
 </main>
 
-<script>window.__creditAccountId = <%- JSON.stringify(id) %>;</script>
+<script>
+  window.__creditAccountId = <%- JSON.stringify(id) %>;
+  window.__canManageAccount = <%- JSON.stringify(['owner', 'finance_manager'].includes(user.role)) %>;
+</script>
 <script src="/js/creditaccounts-view.js"></script>
 
 <%- include('../partials/footer') %>

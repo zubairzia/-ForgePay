@@ -13,6 +13,7 @@ const moduleWebRoutes = require('./modules.web');
 const companiesWebRoutes = require('./companies.web');
 const settingsWebRoutes = require('./settings.web');
 const jobsWebRoutes = require('./jobs.web');
+const notificationsWebRoutes = require('./notifications.web');
 
 const { requireRole } = require('../../middleware/auth.middleware');
 const { ALL_ROLES } = require('../../middleware/roleGroups');
@@ -29,6 +30,7 @@ router.use('/', moduleWebRoutes);
 router.use('/', companiesWebRoutes);
 router.use('/', settingsWebRoutes);
 router.use('/', jobsWebRoutes);
+router.use('/', notificationsWebRoutes);
 
 // Read-only aggregate every role has some view access to (see
 // middleware/roleGroups.js).

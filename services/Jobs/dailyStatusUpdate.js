@@ -148,13 +148,14 @@ const processCompany = async (client, company) => {
     // same pattern services/Repayments/localService.js uses for
     // outstanding_principal/outstanding_markup after posting a payment --
     // derived from the schedule rows, never incremented independently of
-    // them.
+    // them. Excludes 'superseded' rows for the same reason as there: a
+    // rescheduled installment's gap is covered by its replacement now.
     for (const accountId of touchedAccountIds) {
       await client.query(
         `UPDATE credit_accounts SET
            outstanding_penalty = (
              SELECT COALESCE(SUM(penalty_due - penalty_paid), 0)
-             FROM repayment_schedules WHERE credit_account_id = $1
+             FROM repayment_schedules WHERE credit_account_id = $1 AND due_status <> 'superseded'
            ),
            updated_at = now()
          WHERE id = $1`,

@@ -22,7 +22,7 @@ const getDashboardSummary = async (tenantId) => {
          JOIN credit_accounts ca ON ca.id = rs.credit_account_id
          WHERE rs.company_id = $1
            AND rs.due_date = CURRENT_DATE
-           AND rs.due_status NOT IN ('paid', 'waived')`,
+           AND rs.due_status NOT IN ('paid', 'waived', 'superseded')`,
         [tenantId]
       ),
 
@@ -31,7 +31,7 @@ const getDashboardSummary = async (tenantId) => {
          FROM repayment_schedules rs
          WHERE rs.company_id = $1
            AND rs.due_date < CURRENT_DATE
-           AND rs.due_status NOT IN ('paid', 'waived')`,
+           AND rs.due_status NOT IN ('paid', 'waived', 'superseded')`,
         [tenantId]
       ),
 
@@ -65,7 +65,7 @@ const getDashboardSummary = async (tenantId) => {
          JOIN customers c ON c.id = ca.customer_id
          WHERE rs.company_id = $1
            AND rs.due_date <= (CURRENT_DATE + INTERVAL '30 days')::date
-           AND rs.due_status NOT IN ('paid', 'waived')
+           AND rs.due_status NOT IN ('paid', 'waived', 'superseded')
          ORDER BY rs.due_date ASC
          LIMIT 50`,
         [tenantId]

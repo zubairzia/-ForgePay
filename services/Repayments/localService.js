@@ -261,12 +261,15 @@ const recordRepayment = async (tenantId, creditAccountId, data) => {
 
     // Recompute outstanding totals from the full schedule rather than
     // incrementally, so this can't drift from whatever's actually stored.
+    // Excludes 'superseded' rows: a rescheduled installment's due/paid gap
+    // is covered by its replacement row now, not by itself, so counting
+    // both would double the outstanding balance.
     const outstandingResult = await client.query(
       `SELECT
         COALESCE(SUM(principal_due - principal_paid), 0) AS outstanding_principal,
         COALESCE(SUM(markup_due - markup_paid), 0) AS outstanding_markup,
         COALESCE(SUM(penalty_due - penalty_paid), 0) AS outstanding_penalty
-      FROM repayment_schedules WHERE company_id = $1 AND credit_account_id = $2`,
+      FROM repayment_schedules WHERE company_id = $1 AND credit_account_id = $2 AND due_status <> 'superseded'`,
       [tenantId, creditAccountId]
     );
     const outstanding = outstandingResult.rows[0];

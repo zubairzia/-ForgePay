@@ -1,8 +1,8 @@
 window.addEventListener('DOMContentLoaded', () => {
-  // TEMPORARY: hardcoded tenant header until real login/session exists,
-  // same as public/js/customers.js and public/js/creditaccounts.js.
-  const tenantHeaders = { 'X-Tenant-Id': '1' };
-  const jsonHeaders = { ...tenantHeaders, 'Content-Type': 'application/json' };
+  // Tenant now comes from the session cookie (see middleware/auth.middleware.js)
+  // -- the browser attaches it to every same-origin fetch automatically,
+  // no header needed.
+  const jsonHeaders = { 'Content-Type': 'application/json' };
 
   const money = (n) => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -62,7 +62,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     searchDebounce = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/customers/search?query=${encodeURIComponent(q)}`, { headers: tenantHeaders });
+        const res = await fetch(`/api/v1/customers/search?query=${encodeURIComponent(q)}`);
         const customers = await res.json();
         customerResults.innerHTML = '';
         if (!Array.isArray(customers) || customers.length === 0) {
@@ -94,7 +94,7 @@ window.addEventListener('DOMContentLoaded', () => {
     invoiceSelect.disabled = false;
     invoiceSelect.innerHTML = '<option value="">— None —</option>';
     try {
-      const res = await fetch('/api/v1/invoices', { headers: tenantHeaders });
+      const res = await fetch('/api/v1/invoices');
       const invoices = await res.json();
       (Array.isArray(invoices) ? invoices : [])
         .filter(inv => String(inv.customer_id) === String(c.id))
