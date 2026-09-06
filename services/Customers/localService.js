@@ -256,7 +256,7 @@ const createLocalCustomer = async (tenantId, data) => {
         data.status, data.customerType, data.source, data.notes, data.tags,
         data.nationalId || null, data.dateOfBirth || null, data.secondaryPhone || null,
         data.kycStatus || 'pending', data.kycVerifiedAt || null,
-        data.riskRating || null, data.creditScore || null, data.isBlacklisted, data.blacklistReason || null,
+        data.riskRating || null, data.creditScore || null, data.isBlacklisted ?? false, data.blacklistReason || null,
         data.guarantorName || null, data.guarantorPhone || null, data.guarantorNationalId || null, data.guarantorRelationship || null,
         data.preferredPaymentMethod || null, data.openingBalance || 0, data.paymentTermsDays || null, data.preferredLanguage || 'en',
         data.assignedAgentId || null, data.customerSince || null, normalizeMetadata(data.metadata),
